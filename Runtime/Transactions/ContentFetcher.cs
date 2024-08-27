@@ -87,7 +87,6 @@ namespace StrixSDK.Runtime.Db
 
                             bool recache_Offers = false;
                             bool recache_Tests = false;
-                            bool recache_Analytics = false;
                             bool recache_Localization = false;
                             bool recache_Entities = false;
                             bool recache_StatTemplates = false;
@@ -102,11 +101,6 @@ namespace StrixSDK.Runtime.Db
                                         await ProcessOffersMedia(contentItem);
                                         Content.SaveToFile(contentType, contentItem);
                                         recache_Offers = true;
-                                        break;
-
-                                    case "analytics":
-                                        Content.SaveToFile(contentType, contentItem);
-                                        recache_Analytics = true;
                                         break;
 
                                     case "entities":
@@ -150,10 +144,6 @@ namespace StrixSDK.Runtime.Db
                             if (recache_Tests)
                             {
                                 Content.RecacheExistingTests();
-                            }
-                            if (recache_Analytics)
-                            {
-                                Content.RecacheExistingAnalyticsEvents();
                             }
                             if (recache_Localization)
                             {

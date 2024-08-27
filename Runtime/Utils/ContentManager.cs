@@ -13,22 +13,6 @@ namespace StrixSDK.Runtime.Utils
 {
     public static class Content
     {
-        public static AnalyticEvent[] AnalyticEvents;
-
-        public static void RecacheExistingAnalyticsEvents()
-        {
-            var events = LoadAllFromFile("analytics");
-            var analyticEvents = new List<AnalyticEvent>();
-
-            foreach (var eventData in events)
-            {
-                var json = JsonConvert.SerializeObject(eventData);
-                var analyticEvent = JsonConvert.DeserializeObject<AnalyticEvent>(json);
-                analyticEvents.Add(analyticEvent);
-            }
-            AnalyticEvents = analyticEvents.ToArray();
-        }
-
         public static void RecacheExistingStatisticsTemplates()
         {
             var templates = LoadAllFromFile("stattemplates");
@@ -361,6 +345,11 @@ namespace StrixSDK.Runtime.Utils
                 string directoryPath = Path.Combine(Application.persistentDataPath, "Plugins", $"StrixSDK/StrixData/{tableName}");
                 string filePath = Path.Combine(directoryPath, $"{id}.txt");
 
+                if (!Directory.Exists(directoryPath))
+                {
+                    Directory.CreateDirectory(directoryPath);
+                }
+
                 if (File.Exists(filePath))
                 {
                     string base64Content = File.ReadAllText(filePath);
@@ -390,6 +379,11 @@ namespace StrixSDK.Runtime.Utils
             try
             {
                 string directoryPath = Path.Combine(Application.persistentDataPath, "Plugins", $"StrixSDK/StrixData/{tableName}");
+
+                if (!Directory.Exists(directoryPath))
+                {
+                    Directory.CreateDirectory(directoryPath);
+                }
 
                 if (Directory.Exists(directoryPath))
                 {
@@ -518,6 +512,11 @@ namespace StrixSDK.Runtime.Utils
                 string directoryPath = Path.Combine(Application.persistentDataPath, "Plugins", "StrixSDK", "StrixData");
                 string filePath = Path.Combine(directoryPath, "CachedEvents.txt");
 
+                if (!Directory.Exists(directoryPath))
+                {
+                    Directory.CreateDirectory(directoryPath);
+                }
+
                 if (File.Exists(filePath))
                 {
                     // Read content from file
@@ -543,6 +542,11 @@ namespace StrixSDK.Runtime.Utils
             {
                 string directoryPath = Path.Combine(Application.persistentDataPath, "Plugins", "StrixSDK", "StrixData");
                 string filePath = Path.Combine(directoryPath, $"CachedEvents.txt");
+
+                if (!Directory.Exists(directoryPath))
+                {
+                    Directory.CreateDirectory(directoryPath);
+                }
 
                 if (File.Exists(filePath))
                 {

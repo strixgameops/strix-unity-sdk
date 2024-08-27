@@ -57,13 +57,13 @@ namespace StrixSDK
         /// <summary>
         /// Returns offer with given ID, if it exists. Also sends analytics event which helps tracking offer decline rate. Also triggers the start of expiration, if duration for the offer is set. User won't be able to retrieve the offer after it's time is up.
         /// </summary>
-        public static Offer ShowOffer(string offerId)
+        public static Offer ShowOffer(string offerId, Dictionary<string, object> analyticsEventCustomData)
         {
             Offer offer = Instance.I_GetOfferById(offerId);
             if (offer != null)
             {
                 Instance.I_StartOfferExpiration(offerId);
-                Analytics.SendOfferShownEvent(offer.Id, offer.Price.Value);
+                Analytics.SendOfferShownEvent(offer.Id, offer.Price.Value, analyticsEventCustomData);
             }
             return offer;
         }
@@ -71,7 +71,7 @@ namespace StrixSDK
         /// <summary>
         /// Returns offer with given ID, if it exists. Also sends analytics event which helps tracking offer decline rate. Conditionally triggers the start of expiration, if duration for the offer is set. User won't be able to retrieve the offer after it's time is up.
         /// </summary>
-        public static Offer ShowOffer(string offerId, bool startExpiration)
+        public static Offer ShowOffer(string offerId, bool startExpiration, Dictionary<string, object> analyticsEventCustomData)
         {
             Offer offer = Instance.I_GetOfferById(offerId);
             if (offer != null)
@@ -80,7 +80,7 @@ namespace StrixSDK
                 {
                     Instance.I_StartOfferExpiration(offerId);
                 }
-                Analytics.SendOfferShownEvent(offer.Id, offer.Price.Value);
+                Analytics.SendOfferShownEvent(offer.Id, offer.Price.Value, analyticsEventCustomData);
             }
             return offer;
         }
@@ -112,9 +112,9 @@ namespace StrixSDK
         /// <summary>
         /// Starts the process of buying, if the offer is a real-money IAP, and validate the transaction on Strix's end. If offer has a price of 0, it is treated as non-IAP and considered free. If the offer is entity-currency offer, simply sends the event to the server.
         /// </summary>
-        public static async Task<bool> BuyOffer(string offerId)
+        public static async Task<bool> BuyOffer(string offerId, Dictionary<string, object> analyticsEventCustomData)
         {
-            return await Instance.I_BuyOffer(offerId);
+            return await Instance.I_BuyOffer(offerId, analyticsEventCustomData);
         }
 
         /// <summary>
@@ -246,9 +246,9 @@ namespace StrixSDK
             return OffersHelperMethods.GetAllOffers(forceAllOffers);
         }
 
-        private async Task<bool> I_BuyOffer(string offerId)
+        private async Task<bool> I_BuyOffer(string offerId, Dictionary<string, object> analyticsEventCustomData)
         {
-            return await OffersHelperMethods.BuyOffer(offerId);
+            return await OffersHelperMethods.BuyOffer(offerId, analyticsEventCustomData);
         }
 
         #endregion Instance methods

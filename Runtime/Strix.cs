@@ -120,7 +120,7 @@ namespace StrixSDK
                 Analytics analyticsInstance = Analytics.Instance;
 
                 // We need to send newSession event and get the key we will use to access db
-                var result = await Analytics.SendSessionEvent("newSession");
+                var result = await Analytics.SendNewSessionEvent(null);
 
                 if (!string.IsNullOrEmpty(result))
                 {
@@ -138,7 +138,6 @@ namespace StrixSDK
 #if !UNITY_ANDROID
 // Just do this in case we would like other platforms to automatically fetch content on initialization.
                     ContentFetcher.Instance.FetchContentByType("entities");
-                    ContentFetcher.Instance.FetchContentByType("analytics");
                     ContentFetcher.Instance.FetchContentByType("localization");
                     ContentFetcher.Instance.FetchContentByType("stattemplates");
                     ContentFetcher.Instance.FetchContentByType("offers");

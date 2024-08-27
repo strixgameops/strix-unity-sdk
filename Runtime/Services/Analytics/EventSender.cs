@@ -16,16 +16,6 @@ namespace StrixSDK
 {
     public class Analytics : MonoBehaviour
     {
-        private void Start()
-        {
-            if (!Strix.IsInitialized)
-            {
-                Debug.Log($"StrixSDK isn't initialized. Analytics system is not available.");
-                Destroy(gameObject);
-            }
-            Application.logMessageReceived += LogCallback;
-        }
-
         private static Analytics _instance;
 
         public static Analytics Instance
@@ -123,68 +113,63 @@ namespace StrixSDK
         // newSession event: has no actions
         // endSession event: takes it's actions from the PlayerPrefs saved on Initialize()
         //
-        public static async Task<string> SendSessionEvent(string eventType)
+        public static async Task<string> SendNewSessionEvent(Dictionary<string, object> customData)
         {
-            if (eventType == EventTypes.newSession.ToString())
+            PlayerPrefs.SetString("Strix_SessionID", Guid.NewGuid().ToString());
+            PlayerPrefs.Save();
+
+            // Making event payload
+            var payloadObject = new Dictionary<string, object>()
+                {
+                    { "time", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") },
+                    { "type", "newSession" },
+                    { "actions", new JObject() },
+                    { "customData", customData }
+                };
+
+            // Add body and try to send
+            var payloadList = new List<Dictionary<string, object>> { payloadObject };
+            string payloadJson = JsonConvert.SerializeObject(payloadList);
+            return await ProcessNewEvent(payloadJson, false);
+        }
+
+        public static async Task<string> SendEndSessionEvent(Dictionary<string, object> customData)
+        {
+            var time = PlayerPrefs.GetString("Strix_SessionStartTime", string.Empty);
+            if (DateTime.TryParse(time, out DateTime savedTime))
             {
-                PlayerPrefs.SetString("Strix_SessionID", Guid.NewGuid().ToString());
-                PlayerPrefs.Save();
+                DateTime currentTime = DateTime.Now;
+                TimeSpan difference = currentTime - savedTime;
+                double differenceInSeconds = difference.TotalSeconds;
+
+                var actions = new Dictionary<string, object>
+                    {
+                        { "sessionLength", differenceInSeconds }
+                    };
 
                 // Making event payload
                 var payloadObject = new Dictionary<string, object>()
-                {
-                    { "time", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") },
-                    { "type", eventType },
-                    { "actions", new JObject() }
-                };
+                    {
+                        { "time", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") },
+                        { "type", "endSession" },
+                        { "actions", actions },
+                        { "customData", customData }
+                    };
 
                 // Add body and try to send
                 var payloadList = new List<Dictionary<string, object>> { payloadObject };
                 string payloadJson = JsonConvert.SerializeObject(payloadList);
                 return await ProcessNewEvent(payloadJson, false);
             }
-            else if (eventType == EventTypes.endSession.ToString())
-            {
-                var time = PlayerPrefs.GetString("Strix_SessionStartTime", string.Empty);
-                if (DateTime.TryParse(time, out DateTime savedTime))
-                {
-                    DateTime currentTime = DateTime.Now;
-                    TimeSpan difference = currentTime - savedTime;
-                    double differenceInSeconds = difference.TotalSeconds;
-
-                    var actions = new Dictionary<string, object>
-                    {
-                        { "sessionLength", differenceInSeconds }
-                    };
-
-                    // Making event payload
-                    var payloadObject = new Dictionary<string, object>()
-                    {
-                        { "time", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") },
-                        { "type", eventType },
-                        { "actions", actions }
-                    };
-
-                    // Add body and try to send
-                    var payloadList = new List<Dictionary<string, object>> { payloadObject };
-                    string payloadJson = JsonConvert.SerializeObject(payloadList);
-                    return await ProcessNewEvent(payloadJson, false);
-                }
-                else
-                {
-                    Utils.LogError($"Could not retrieve valid time from PlayerPrefs for '{EventTypes.endSession.ToString()}' event. Got: {time}");
-                    return null;
-                }
-            }
             else
             {
-                Utils.LogError($"Not enough arguments provided for event: {eventType}");
+                Utils.LogError($"Could not retrieve valid time from PlayerPrefs for '{EventTypes.endSession.ToString()}' event. Got: {time}");
+                return null;
             }
-            return null;
         }
 
         // offerEvent
-        public static async Task<string> SendOfferBuyEvent(string offerID, float price, string currency)
+        public static async Task<string> SendOfferBuyEvent(string offerID, float price, string currency, Dictionary<string, object> customData)
         {
             if (String.IsNullOrEmpty(offerID))
             {
@@ -207,7 +192,7 @@ namespace StrixSDK
                 {
                     { "offerID", offerID },
                     { "price", price },
-                    { "currency", currency }
+                    { "currency", currency },
                 };
 
             // Making event payload
@@ -215,7 +200,8 @@ namespace StrixSDK
                 {
                     { "time", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") },
                     { "type", "offerEvent" },
-                    { "actions", actions }
+                    { "actions", actions },
+                    { "customData", customData }
                 };
 
             // Add body and try to send
@@ -225,7 +211,7 @@ namespace StrixSDK
         }
 
         // offerShown event
-        public static async Task<string> SendOfferShownEvent(string offerID, float price)
+        public static async Task<string> SendOfferShownEvent(string offerID, float price, Dictionary<string, object> customData)
         {
             if (String.IsNullOrEmpty(offerID))
             {
@@ -257,7 +243,8 @@ namespace StrixSDK
                 {
                     { "time", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") },
                     { "type", "offerShown" },
-                    { "actions", actions }
+                    { "actions", actions },
+                    { "customData", customData }
                 };
 
             // Add body and try to send
@@ -267,7 +254,7 @@ namespace StrixSDK
         }
 
         // economyEvent
-        public static async Task<string> SendEconomyEvent(string currencyID, float amount, EconomyTypes type, string origin)
+        public static async Task<string> SendEconomyEvent(string currencyID, float amount, EconomyTypes type, string origin, Dictionary<string, object> customData)
         {
             if (String.IsNullOrEmpty(currencyID))
             {
@@ -313,7 +300,8 @@ namespace StrixSDK
                 {
                     { "time", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") },
                     { "type", "economyEvent" },
-                    { "actions", actions }
+                    { "actions", actions },
+                    { "customData", customData }
                 };
 
             // Add body and try to send
@@ -323,7 +311,7 @@ namespace StrixSDK
         }
 
         // adEvent
-        public static async Task<string> SendAdEvent(string adNetwork, AdTypes adType, int timeSpent)
+        public static async Task<string> SendAdEvent(string adNetwork, AdTypes adType, int timeSpent, Dictionary<string, object> customData)
         {
             if (!Enum.IsDefined(typeof(AdTypes), adType))
             {
@@ -348,7 +336,8 @@ namespace StrixSDK
                  {
                      { "time", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") },
                      { "type", "adEvent" },
-                     { "actions", actions }
+                     { "actions", actions },
+                     { "customData", customData }
                  };
 
             // Add body and try to send
@@ -358,7 +347,7 @@ namespace StrixSDK
         }
 
         // reportEvent
-        public static async Task<string> SendReportEvent(SeverityTypes severity, string reportID, string message)
+        public static async Task<string> SendReportEvent(SeverityTypes severity, string reportID, string message, Dictionary<string, object> customData)
         {
             if (!Enum.IsDefined(typeof(SeverityTypes), severity))
             {
@@ -388,7 +377,8 @@ namespace StrixSDK
                 {
                     { "time", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") },
                     { "type", "reportEvent" },
-                    { "actions", actions }
+                    { "actions", actions },
+                    { "customData", customData }
                 };
 
             // Add body and try to send
@@ -398,34 +388,17 @@ namespace StrixSDK
         }
 
         // custom design events
-        public static async Task<string> SendCustomEvent(string eventID, object value1, object value2, object value3)
+        public static async Task<string> SendCustomEvent(string eventID, Dictionary<string, object> customData)
         {
-            AnalyticEvent targetEvent = Content.AnalyticEvents.FirstOrDefault(e => e.Codename == eventID);
-            if (targetEvent == null)
-            {
-                Utils.LogError($"Custom design event named '{eventID}' was not found.");
-                return null;
-            }
-
-            // Validate all custom events' values
-            var check = ValidateEventValues(targetEvent, eventID, value1, value2, value3);
-
             var time = PlayerPrefs.GetString("Strix_SessionStartTime", string.Empty);
-            if (!String.IsNullOrEmpty(time) && check)
+            if (!String.IsNullOrEmpty(time))
             {
-                var actions = new Dictionary<string, object>
-                    {
-                        { "value1", value1 },
-                        { "value2", value2 },
-                        { "value3", value3 },
-                    };
-
                 // Making event payload
                 var payloadObject = new Dictionary<string, object>()
                     {
                         { "time", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") },
                         { "type", eventID },
-                        { "actions", actions }
+                        { "customData", customData }
                     };
 
                 // Add body and try to send
@@ -438,147 +411,6 @@ namespace StrixSDK
                 if (String.IsNullOrEmpty(time))
                 {
                     Utils.LogError($"Could not retrieve valid time from PlayerPrefs for '{eventID}' event. Got: {time}");
-                }
-                else if (!check)
-                {
-                    Utils.LogError($"Could not validate values for '{eventID}' event.");
-                }
-            }
-            return null;
-        }
-
-        public static async Task<string> SendCustomEvent(string eventID, object value1, object value2)
-        {
-            AnalyticEvent targetEvent = Content.AnalyticEvents.FirstOrDefault(e => e.Codename == eventID);
-            if (targetEvent == null)
-            {
-                Utils.LogError($"Custom design event named '{eventID}' was not found.");
-                return null;
-            }
-
-            // Validate all custom events' values
-            var check = ValidateEventValues(targetEvent, eventID, value1, value2);
-
-            var time = PlayerPrefs.GetString("Strix_SessionStartTime", string.Empty);
-            if (!String.IsNullOrEmpty(time) && check)
-            {
-                var actions = new Dictionary<string, object>
-                    {
-                        { "value1", value1 },
-                        { "value2", value2 },
-                    };
-
-                // Making event payload
-                var payloadObject = new Dictionary<string, object>()
-                    {
-                        { "time", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") },
-                        { "type", eventID },
-                        { "actions", actions }
-                    };
-
-                // Add body and try to send
-                var payloadList = new List<Dictionary<string, object>> { payloadObject };
-                string payloadJson = JsonConvert.SerializeObject(payloadList);
-                return await ProcessNewEvent(payloadJson, false);
-            }
-            else
-            {
-                if (String.IsNullOrEmpty(time))
-                {
-                    Utils.LogError($"Could not retrieve valid time from PlayerPrefs for '{eventID}' event. Got: {time}");
-                }
-                else if (!check)
-                {
-                    Utils.LogError($"Could not validate values for '{eventID}' event.");
-                }
-            }
-            return null;
-        }
-
-        public static async Task<string> SendCustomEvent(string eventID, object value1)
-        {
-            AnalyticEvent targetEvent = Content.AnalyticEvents.FirstOrDefault(e => e.Codename == eventID);
-            if (targetEvent == null)
-            {
-                Utils.LogError($"Custom design event named '{eventID}' was not found.");
-                return null;
-            }
-
-            // Validate all custom events' values
-            var check = ValidateEventValues(targetEvent, eventID, value1);
-
-            var time = PlayerPrefs.GetString("Strix_SessionStartTime", string.Empty);
-            if (!String.IsNullOrEmpty(time) && check)
-            {
-                var actions = new Dictionary<string, object>
-                    {
-                        { "value1", value1 },
-                    };
-
-                // Making event payload
-                var payloadObject = new Dictionary<string, object>()
-                    {
-                        { "time", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") },
-                        { "type", eventID },
-                        { "actions", actions }
-                    };
-
-                // Add body and try to send
-                var payloadList = new List<Dictionary<string, object>> { payloadObject };
-                string payloadJson = JsonConvert.SerializeObject(payloadList);
-                return await ProcessNewEvent(payloadJson, false);
-            }
-            else
-            {
-                if (String.IsNullOrEmpty(time))
-                {
-                    Utils.LogError($"Could not retrieve valid time from PlayerPrefs for '{eventID}' event. Got: {time}");
-                }
-                else if (!check)
-                {
-                    Utils.LogError($"Could not validate values for '{eventID}' event.");
-                }
-            }
-            return null;
-        }
-
-        public static async Task<string> SendCustomEvent(string eventID)
-        {
-            AnalyticEvent targetEvent = Content.AnalyticEvents.FirstOrDefault(e => e.Codename == eventID);
-            if (targetEvent == null)
-            {
-                Utils.LogError($"Custom design event named '{eventID}' was not found.");
-                return null;
-            }
-
-            // Validate all custom events' values
-            var check = ValidateEventValues(targetEvent, eventID);
-
-            var time = PlayerPrefs.GetString("Strix_SessionStartTime", string.Empty);
-            if (!String.IsNullOrEmpty(time) && check)
-            {
-                // Making event payload
-                var payloadObject = new Dictionary<string, object>()
-                    {
-                        { "time", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") },
-                        { "type", eventID },
-                        { "actions", new JObject() }
-                    };
-
-                // Add body and try to send
-                var payloadList = new List<Dictionary<string, object>> { payloadObject };
-                string payloadJson = JsonConvert.SerializeObject(payloadList);
-                return await ProcessNewEvent(payloadJson, false);
-            }
-            else
-            {
-                if (String.IsNullOrEmpty(time))
-                {
-                    Utils.LogError($"Could not retrieve valid time from PlayerPrefs for '{eventID}' event. Got: {time}");
-                }
-                else if (!check)
-                {
-                    Utils.LogError($"Could not validate values for '{eventID}' event.");
                 }
             }
             return null;
@@ -586,123 +418,13 @@ namespace StrixSDK
 
         #endregion Sending events
 
-        #region Design event values validation
-
-        //
-        // Get the event the user tries to call, and check how many values are there. If the user provided too many or too few values, reject the event.
-        // We only want to accept events that match the values designed in the web panel, and their data types must match required event's values types, too.
-        //
-        private static bool ValidateEventValues(AnalyticEvent eventObj, string eventID, object value1, object value2, object value3)
-        {
-            if (eventObj == null)
-            {
-                Utils.LogError($"Custom design event named '{eventID}' was not found.");
-                return false;
-            }
-            EventValue[] values = eventObj.Values;
-            if (values.Length == 3)
-            {
-                return ValidateEventValue(values[0], value1) && ValidateEventValue(values[1], value2) && ValidateEventValue(values[2], value3);
-            }
-            else
-            {
-                Utils.LogError($"Too much or too few arguments provided for the event '{eventID}'. Expecting {values.Length} values to be provided.");
-                return false;
-            }
-        }
-
-        private static bool ValidateEventValues(AnalyticEvent eventObj, string eventID, object value1, object value2)
-        {
-            if (eventObj == null)
-            {
-                Utils.LogError($"Custom design event named '{eventID}' was not found.");
-                return false;
-            }
-            EventValue[] values = eventObj.Values;
-            if (values.Length == 2)
-            {
-                return ValidateEventValue(values[0], value1) && ValidateEventValue(values[1], value2);
-            }
-            else
-            {
-                Utils.LogError($"Too much or too few arguments provided for the event '{eventID}'. Expecting {values.Length} values to be provided.");
-                return false;
-            }
-        }
-
-        private static bool ValidateEventValues(AnalyticEvent eventObj, string eventID, object value1)
-        {
-            if (eventObj == null)
-            {
-                Utils.LogError($"Custom design event named '{eventID}' was not found.");
-                return false;
-            }
-            EventValue[] values = eventObj.Values;
-            if (values.Length == 1)
-            {
-                return ValidateEventValue(values[0], value1);
-            }
-            else
-            {
-                Utils.LogError($"Too much or too few arguments provided for the event '{eventID}'. Expecting {values.Length} values to be provided.");
-                return false;
-            }
-        }
-
-        private static bool ValidateEventValues(AnalyticEvent eventObj, string eventID)
-        {
-            if (eventObj == null)
-            {
-                Utils.LogError($"Custom design event named '{eventID}' was not found.");
-                return false;
-            }
-            EventValue[] values = eventObj.Values;
-            if (values.Length == 0)
-            {
-                return true;
-            }
-            else
-            {
-                Utils.LogError($"Too much or too few arguments provided for the event '{eventID}'. Expecting {values.Length} values to be provided.");
-                return false;
-            }
-        }
-
-        private static bool ValidateEventValue(EventValue valueObject, object value)
-        {
-            string format = valueObject.Format;
-
-            if (format == "string")
-            {
-                // Check if value is string
-                return value is string;
-            }
-            else if (format == "percentile")
-            {
-                // If a percentile, check if within a range
-                return (value is int || value is float || value is decimal || value is double || value is long) && ((int)value - 1) * (100 - (int)value) >= 0;
-            }
-            else if (format == "bool")
-            {
-                // If bool, check if bool
-                return value is bool;
-            }
-            else
-            {
-                // If other type (float, int, money), just check if it suits the number data type.
-                return value is int || value is float || value is decimal || value is double || value is long;
-            }
-        }
-
-        #endregion Design event values validation
-
         #region Session end/crash handler
 
         private void LogCallback(string logString, string stackTrace, LogType type)
         {
             if (type == LogType.Exception)
             {
-                SendReportEvent(SeverityTypes.fatal, logString, stackTrace);
+                SendReportEvent(SeverityTypes.fatal, logString, stackTrace, null);
             }
             // Do not uncomment until we figure better way to handle the case where error sending reportEvent causes another reportEvent to arise
             //if (type == LogType.Error)
@@ -713,12 +435,12 @@ namespace StrixSDK
 
         private void OnApplicationPause()
         {
-            SendSessionEvent("endSession");
+            SendEndSessionEvent(null);
         }
 
         private void OnApplicationQuit()
         {
-            SendSessionEvent("endSession");
+            SendEndSessionEvent(null);
         }
 
         #endregion Session end/crash handler

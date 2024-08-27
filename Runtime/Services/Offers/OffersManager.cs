@@ -188,7 +188,7 @@ namespace StrixSDK.Runtime
 
     public static class OffersHelperMethods
     {
-        public static async Task<bool> BuyOffer(string offerId)
+        public static async Task<bool> BuyOffer(string offerId, Dictionary<string, object> customData)
         {
             try
             {
@@ -272,7 +272,7 @@ namespace StrixSDK.Runtime
                 }
                 else
                 {
-                    Analytics.SendOfferBuyEvent(GetOriginalOfferInternalId(offer.InternalId), resultPrice, currency);
+                    Analytics.SendOfferBuyEvent(GetOriginalOfferInternalId(offer.InternalId), resultPrice, currency, null);
                     return true;
                 }
             }

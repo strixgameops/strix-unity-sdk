@@ -272,7 +272,7 @@ namespace StrixSDK.Runtime
                 }
                 else
                 {
-                    Analytics.SendOfferBuyEvent(GetOriginalOfferInternalId(offer.InternalId), resultPrice, currency, null);
+                    Analytics.SendOfferBuyEvent(GetOriginalOfferInternalId(offer.InternalId), resultPrice, currency, customData);
                     return true;
                 }
             }

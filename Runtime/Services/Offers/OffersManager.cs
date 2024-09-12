@@ -233,7 +233,7 @@ namespace StrixSDK.Runtime
                         StrixSDKConfig config = StrixSDKConfig.Instance;
                         var body = new Dictionary<string, object>()
                         {
-                            {"device", SystemInfo.deviceUniqueIdentifier},
+                            {"device", Strix.clientID},
                             {"secret", config.apiKey},
                             {"build", config.branch},
                             {"asku", asku},
@@ -272,7 +272,7 @@ namespace StrixSDK.Runtime
                 }
                 else
                 {
-                    Analytics.SendOfferBuyEvent(GetOriginalOfferInternalId(offer.InternalId), resultPrice, currency, customData);
+                    _ = Analytics.SendOfferBuyEvent(GetOriginalOfferInternalId(offer.InternalId), resultPrice, currency, customData);
                     return true;
                 }
             }

@@ -63,7 +63,7 @@ namespace StrixSDK
             if (offer != null)
             {
                 Instance.I_StartOfferExpiration(offerId);
-                Analytics.SendOfferShownEvent(offer.Id, offer.Price.Value, analyticsEventCustomData);
+                _ = Analytics.SendOfferShownEvent(offer.Id, offer.Price.Value, analyticsEventCustomData);
             }
             return offer;
         }
@@ -80,7 +80,7 @@ namespace StrixSDK
                 {
                     Instance.I_StartOfferExpiration(offerId);
                 }
-                Analytics.SendOfferShownEvent(offer.Id, offer.Price.Value, analyticsEventCustomData);
+                _ = Analytics.SendOfferShownEvent(offer.Id, offer.Price.Value, analyticsEventCustomData);
             }
             return offer;
         }

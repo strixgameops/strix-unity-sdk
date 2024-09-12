@@ -54,7 +54,7 @@ namespace StrixSDK
             IsInitialized = await InitSDK(clientID);
             if (!IsInitialized)
             {
-                RetryInitialize(clientID);
+                _ = RetryInitialize(clientID);
             }
             return IsInitialized;
         }
@@ -66,7 +66,7 @@ namespace StrixSDK
             IsInitialized = await InitSDK(clientID);
             if (!IsInitialized)
             {
-                RetryInitialize(customClientID);
+                _ = RetryInitialize(customClientID);
             }
             return IsInitialized;
         }
@@ -135,15 +135,24 @@ namespace StrixSDK
                     // Initialize listener services so we can communicate with backend
                     bool transactionsInit = await TransactionsHandler.Instance.Initialize(clientId, responseObj.Data.FcmData);
 
+                    var fetchContent = new Task[]
+                    {
+                        ContentFetcher.Instance.FetchContentByType("entities"),
+                        ContentFetcher.Instance.FetchContentByType("localization"),
+                        ContentFetcher.Instance.FetchContentByType("stattemplates"),
+                        ContentFetcher.Instance.FetchContentByType("offers"),
+                        ContentFetcher.Instance.FetchContentByType("positionedOffers"),
+                        ContentFetcher.Instance.FetchContentByType("abtests")
+                    };
 #if !UNITY_ANDROID
 // Just do this in case we would like other platforms to automatically fetch content on initialization.
-                    ContentFetcher.Instance.FetchContentByType("entities");
-                    ContentFetcher.Instance.FetchContentByType("localization");
-                    ContentFetcher.Instance.FetchContentByType("stattemplates");
-                    ContentFetcher.Instance.FetchContentByType("offers");
-                    ContentFetcher.Instance.FetchContentByType("positionedOffers");
-                    ContentFetcher.Instance.FetchContentByType("abtests");
+                    await Task.WhenAll(fetchContent);
 #endif
+
+                    if (!config.fetchUpdatesInRealTime)
+                    {
+                        await Task.WhenAll(fetchContent);
+                    }
 
                     //// Initialize PlayerWarehouse elements for current player
                     Debug.Log("Starting PlayerManager initialization...");

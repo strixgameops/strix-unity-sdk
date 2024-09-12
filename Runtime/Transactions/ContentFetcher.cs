@@ -55,7 +55,7 @@ namespace StrixSDK.Runtime.Db
 
         private static List<string> mediaIDs = new List<string>();
 
-        public async void FetchContentByType(string contentType)
+        public async Task<bool> FetchContentByType(string contentType)
         {
             try
             {
@@ -163,10 +163,12 @@ namespace StrixSDK.Runtime.Db
                         }
                     }
                 }
+                return true;
             }
             catch (Exception ex)
             {
                 Debug.LogError($"Could not fetch content: {ex.Message}");
+                return false;
             }
         }
 

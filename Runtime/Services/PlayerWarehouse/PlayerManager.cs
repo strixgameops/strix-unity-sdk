@@ -166,7 +166,7 @@ namespace StrixSDK.Runtime
                     return value;
 
                 case "bool":
-                    return value == "True";
+                    return (string)value == "True";
             }
             return value;
         }
@@ -180,13 +180,13 @@ namespace StrixSDK.Runtime
 
             var body = new Dictionary<string, object>()
             {
-                {"device", SystemInfo.deviceUniqueIdentifier},
+                {"device", Strix.clientID},
                 {"secret", config.apiKey},
                 {"build", buildType},
                 {"elementID", elementId},
                 {"value", value},
             };
-            Client.Req(endpoint, body);
+            _ = Client.Req(endpoint, body);
         }
 
         public static object GetPlayerElementValue(string elementId)
@@ -251,13 +251,13 @@ namespace StrixSDK.Runtime
 
             var body = new Dictionary<string, object>()
             {
-                {"device", SystemInfo.deviceUniqueIdentifier},
+                {"device", Strix.clientID},
                 {"secret", config.apiKey},
                 {"build", buildType},
                 {"offerID", offerInternalId},
                 {"expiration", expirationDate.ToString("o")},
             };
-            Client.Req(API.SetOfferExpiration, body);
+            _ = Client.Req(API.SetOfferExpiration, body);
         }
 
         public static async Task<object> GetPlayerElementValueAsync(string elementId)

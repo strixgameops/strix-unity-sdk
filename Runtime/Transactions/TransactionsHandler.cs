@@ -14,11 +14,8 @@ using Firebase;
 using Firebase.Messaging;
 using Firebase.Extensions;
 
-using UnityEngine;
-
 using StrixSDK.Runtime.APIClient;
 using StrixSDK.Runtime.Models;
-using Unity.VisualScripting.FullSerializer;
 
 namespace StrixSDK.Runtime.Db
 {
@@ -139,6 +136,10 @@ namespace StrixSDK.Runtime.Db
                 switch (data["type"])
                 {
                     case "update":
+
+                        StrixSDKConfig config = StrixSDKConfig.Instance;
+                        if (!config.fetchUpdatesInRealTime) break;
+
                         var checksums = JsonConvert.DeserializeObject<Dictionary<string, object>>(data["checksums"].ToString());
 
                         // Iterate through each field in the data
@@ -153,7 +154,7 @@ namespace StrixSDK.Runtime.Db
                             if (remoteChecksum != storedChecksum || storedChecksum == -1)
                             {
                                 Debug.LogWarning($"Checksum mismatch for table '{field.Key}'. Remote: {remoteChecksum}, Local: {storedChecksum}");
-                                ContentFetcher.Instance.FetchContentByType(field.Key);
+                                _ = ContentFetcher.Instance.FetchContentByType(field.Key);
                             }
                             else
                             {

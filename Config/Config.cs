@@ -7,6 +7,7 @@ namespace StrixSDK.Editor.Config
     {
         public string apiKey;
         public string branch = "development";
+        public bool fetchUpdatesInRealTime = false;
 
         private static StrixSDKConfig instance;
 

@@ -424,7 +424,7 @@ namespace StrixSDK
         {
             if (type == LogType.Exception)
             {
-                SendReportEvent(SeverityTypes.fatal, logString, stackTrace, null);
+                _ = SendReportEvent(SeverityTypes.fatal, logString, stackTrace, null);
             }
             // Do not uncomment until we figure better way to handle the case where error sending reportEvent causes another reportEvent to arise
             //if (type == LogType.Error)
@@ -435,12 +435,12 @@ namespace StrixSDK
 
         private void OnApplicationPause()
         {
-            SendEndSessionEvent(null);
+            _ = SendEndSessionEvent(null);
         }
 
         private void OnApplicationQuit()
         {
-            SendEndSessionEvent(null);
+            _ = SendEndSessionEvent(null);
         }
 
         #endregion Session end/crash handler

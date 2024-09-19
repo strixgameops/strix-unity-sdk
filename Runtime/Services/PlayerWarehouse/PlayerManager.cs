@@ -56,6 +56,7 @@ namespace StrixSDK.Runtime
 
         public bool Initialize(PlayerData data)
         {
+            if (data == null) return false;
             try
             {
                 _playerData = data;

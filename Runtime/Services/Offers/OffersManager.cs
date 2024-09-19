@@ -63,6 +63,7 @@ namespace StrixSDK.Runtime
             List<Offer> offersList = new List<Offer>();
             var offersDocs = Content.LoadAllFromFile("offers");
 
+            Debug.Log("Fetching offers...");
             if (offersDocs != null)
             {
                 foreach (var doc in offersDocs)
@@ -86,6 +87,9 @@ namespace StrixSDK.Runtime
             }
 
             // Make IAP handler
+#if UNITY_ANDROID
+            Debug.Log("Making IAPs from offers...");
+
             try
             {
                 if (iapManagerInstance == null)
@@ -104,8 +108,10 @@ namespace StrixSDK.Runtime
             {
                 Debug.LogError($"Error initializing IAP manager: {e.Message}");
             }
+#endif
 
             // Refresh positions array
+            Debug.Log("Fetching positioned offers...");
             List<PositionedOffer> positionedOffersList = new List<PositionedOffer>();
             var positionedOffersDocs = Content.LoadAllFromFile("positionedOffers");
             if (positionedOffersDocs != null)

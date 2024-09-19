@@ -7,7 +7,6 @@ namespace StrixSDK.Runtime.Models
         private const string server = "https://tool.strixgameops.com";
 
         public const string SendEvent = server + "/sdk/api/v1/analytics/sendEvent";
-        public const string DesignEvent = server + "/sdk/api/v1/analytics/designEvent";
 
         public const string GetElementValue = server + "/sdk/api/v1/getElementValue";
         public const string SetElementValue = server + "/sdk/api/v1/setValueToStatisticElement";

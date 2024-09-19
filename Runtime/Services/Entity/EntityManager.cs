@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Video;
+using static UnityEngine.Rendering.DebugUI;
 
 namespace StrixSDK.Runtime
 {
@@ -376,14 +377,55 @@ namespace StrixSDK.Runtime
                 List<ConfigValue> formattedValues = new List<ConfigValue>();
                 foreach (var value in valueConfig.Values)
                 {
-                    formattedValues.Add(FormatConfigFieldValue(value, "everyone", autoConvert));
+                    // Check if value is being AB tested and we're in the test. Pick the first matching segment for now, probably should implement priorities later.
+                    ABTest[] filteredABTests = PlayerManager.Instance._abTests
+                        .Where(test => test.Subject?.Type == "entity")
+                        .ToArray();
+                    var abTestSegmentIds = filteredABTests
+                        .Select(test => $"abtest_{test.InternalId}")
+                        .ToList();
+
+                    var firstMatchingSegment = value.Segments?
+                        .FirstOrDefault(segment => abTestSegmentIds.Contains(segment.SegmentID));
+
+                    if (firstMatchingSegment != null)
+                    {
+                        // With AB test
+                        formattedValues.Add(FormatConfigFieldValue(value, firstMatchingSegment.SegmentID, autoConvert));
+                    }
+                    else
+                    {
+                        // Default
+                        formattedValues.Add(FormatConfigFieldValue(value, "everyone", autoConvert));
+                    }
                 }
                 return formattedValues.ToArray();
             }
             else
             {
                 // Other value types
-                return FormatConfigFieldValue(valueConfig, "everyone", autoConvert);
+                //
+                // Check if value is being AB tested and we're in the test. Pick the first matching segment for now, probably should implement priorities later.
+                ABTest[] filteredABTests = PlayerManager.Instance._abTests
+                        .Where(test => test.Subject?.Type == "entity")
+                        .ToArray();
+                var abTestSegmentIds = filteredABTests
+                    .Select(test => $"abtest_{test.InternalId}")
+                    .ToList();
+
+                var firstMatchingSegment = valueConfig.Segments?
+                    .FirstOrDefault(segment => abTestSegmentIds.Contains(segment.SegmentID));
+
+                if (firstMatchingSegment != null)
+                {
+                    // Default, but with AB test in case
+                    return FormatConfigFieldValue(valueConfig, firstMatchingSegment.SegmentID, autoConvert);
+                }
+                else
+                {
+                    // Default
+                    return FormatConfigFieldValue(valueConfig, "everyone", autoConvert);
+                }
             }
         }
 

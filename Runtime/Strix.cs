@@ -103,7 +103,7 @@ namespace StrixSDK
                     {"engineVersion", Application.unityVersion},
                 };
 
-                Utils.LogMessage($"Sending analytics event.");
+                Debug.Log($"Sending analytics event.");
 
                 var versionCheck = await Client.Req(API.CheckSDK, checkerBody);
                 var versionCheckResponse = JsonConvert.DeserializeObject<M_SDKVersionCheckResponse>(versionCheck);
@@ -132,8 +132,10 @@ namespace StrixSDK
                     PlayerPrefs.SetString("Strix_ClientCurrency", responseObj.Data.Currency);
                     PlayerPrefs.Save();
 
+#if UNITY_ANDROID
                     // Initialize listener services so we can communicate with backend
                     bool transactionsInit = await TransactionsHandler.Instance.Initialize(clientId, responseObj.Data.FcmData);
+#endif
 
                     var fetchContent = new Task[]
                     {
@@ -144,15 +146,17 @@ namespace StrixSDK
                         ContentFetcher.Instance.FetchContentByType("positionedOffers"),
                         ContentFetcher.Instance.FetchContentByType("abtests")
                     };
-#if !UNITY_ANDROID
-// Just do this in case we would like other platforms to automatically fetch content on initialization.
-                    await Task.WhenAll(fetchContent);
-#endif
-
+#if UNITY_ANDROID
                     if (!config.fetchUpdatesInRealTime)
                     {
+                        Debug.Log("Fetching content for StrixSDK");
                         await Task.WhenAll(fetchContent);
                     }
+#else
+                    // Just do this in case we would like other platforms to automatically fetch content on initialization.
+                    Debug.Log("Fetching content for StrixSDK");
+                    await Task.WhenAll(fetchContent);
+#endif
 
                     //// Initialize PlayerWarehouse elements for current player
                     Debug.Log("Starting PlayerManager initialization...");
@@ -172,6 +176,7 @@ namespace StrixSDK
                     bool offersInit = offersManagerInstance.Initialize();
                     Debug.Log("OffersManager initialization finished.");
 
+#if UNITY_ANDROID
                     if (transactionsInit && offersInit && entitiesInit && warehouseInit)
                     {
                         Debug.Log("StrixSDK initialized successfuly!");
@@ -185,20 +190,69 @@ namespace StrixSDK
                             $"EntityManager={entitiesInit}." +
                             $"PlayerManager={warehouseInit}." +
                             $"TransactionsHandler={transactionsInit}." +
-                            $" Strix won't initialize.");
+                            $" Strix will try to initialize using local configs.");
+                        InitializeServices();
                         return false;
                     }
+#else
+                    if (offersInit && entitiesInit && warehouseInit)
+                    {
+                        Debug.Log("StrixSDK initialized successfuly!");
+                        return true;
+                    }
+                    else
+                    {
+                        Debug.Log($"Error while initializing StrixSDK. " +
+                            $"\n Initialization results: " +
+                            $"OffersManager={offersInit}." +
+                            $"EntityManager={entitiesInit}." +
+                            $"PlayerManager={warehouseInit}." +
+                            $" Strix will try to initialize using local configs.");
+                        InitializeServices();
+                        return false;
+                    }
+#endif
                 }
                 else
                 {
-                    Utils.LogError("Invalid value returned during initialization initial event. Expected non-empty string. Strix won't initialize.");
+                    Debug.LogError("Invalid value returned during initialization initial event. Expected non-empty string. Strix will try to initialize using local configs.");
+                    InitializeServices();
                     return false;
                 }
             }
             catch (Exception ex)
             {
-                Utils.LogError($"Exception in InitSDK: {ex.Message}");
+                Debug.LogError($"Exception in InitSDK: {ex.Message}");
+                InitializeServices();
                 return false;
+            }
+        }
+
+        private static void InitializeServices()
+        {
+            try
+            {
+                //// Initialize PlayerWarehouse elements for current player
+                Debug.Log("Starting PlayerManager initialization...");
+                PlayerManager playerManagerInstance = PlayerManager.Instance;
+                bool warehouseInit = playerManagerInstance.Initialize(null);
+                Debug.Log("PlayerManager initialization finished.");
+
+                //// Initialize Entities
+                Debug.Log("Starting EntityManager initialization...");
+                EntityManager entityManagerInstance = EntityManager.Instance;
+                bool entitiesInit = entityManagerInstance.Initialize();
+                Debug.Log("EntityManager initialization finished.");
+
+                //// Initialize offers manager
+                Debug.Log("Starting OffersManager initialization...");
+                OffersManager offersManagerInstance = OffersManager.Instance;
+                bool offersInit = offersManagerInstance.Initialize();
+                Debug.Log("OffersManager initialization finished.");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Could not initialize StrixSDK partially: {ex.Message}");
             }
         }
 

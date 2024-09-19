@@ -36,6 +36,8 @@ namespace StrixSDK
             }
         }
 
+        private static bool endSessionWasSent = false;
+
         #region Types
 
         public enum EventTypes
@@ -65,7 +67,7 @@ namespace StrixSDK
             var clientID = PlayerPrefs.GetString("Strix_ClientID", string.Empty);
             if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(clientID))
             {
-                Utils.LogError("Error while sending Strix analytics event: client ID or Session ID is invalid.");
+                Debug.LogError("Error while sending Strix analytics event: client ID or Session ID is invalid.");
                 return null;
             }
 
@@ -82,7 +84,7 @@ namespace StrixSDK
                 {"payload", JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(payload)}
             };
 
-            Utils.LogMessage($"Sending analytics event.");
+            Debug.Log($"Sending analytics event.");
 
             var response = await Client.Req(API.SendEvent, eventBody);
             if (response == "err")
@@ -91,18 +93,18 @@ namespace StrixSDK
                 {
                     AnalyticsCache.CacheFailedEvents(payload);
                     await NetworkListener.CheckNetworkAvailabilityAsync(API.HealthCheck);
-                    Utils.LogError("Error while sending Strix analytics event: no internet connection found. Events will be saved and delivered later.");
+                    Debug.LogError("Error while sending Strix analytics event: no internet connection found. Events will be saved and delivered later.");
                 }
                 else
                 {
                     await NetworkListener.CheckNetworkAvailabilityAsync(API.HealthCheck);
-                    Utils.LogError("Error while sending Strix analytics event: no internet connection found. Events will NOT be saved as preventCaching is 'true', but will be delivered later .");
+                    Debug.LogError("Error while sending Strix analytics event: no internet connection found. Events will NOT be saved as preventCaching is 'true', but will be delivered later .");
                 }
                 return null;
             }
             else
             {
-                Utils.LogMessage($"Analytics event was successfully sent.");
+                Debug.Log($"Analytics event was successfully sent.");
                 return response;
             }
         }
@@ -163,7 +165,7 @@ namespace StrixSDK
             }
             else
             {
-                Utils.LogError($"Could not retrieve valid time from PlayerPrefs for '{EventTypes.endSession.ToString()}' event. Got: {time}");
+                Debug.LogError($"Could not retrieve valid time from PlayerPrefs for '{EventTypes.endSession.ToString()}' event. Got: {time}");
                 return null;
             }
         }
@@ -173,18 +175,18 @@ namespace StrixSDK
         {
             if (String.IsNullOrEmpty(offerID))
             {
-                Utils.LogError($"Null or empty offerID in event 'offerEvent'");
+                Debug.LogError($"Null or empty offerID in event 'offerEvent'");
                 return null;
             }
             if (price < 0)
             {
-                Utils.LogError($"Invalid price in event 'offerEvent'. Must be equal or greater than zero (zero = free).");
+                Debug.LogError($"Invalid price in event 'offerEvent'. Must be equal or greater than zero (zero = free).");
                 return null;
             }
 
             if (string.IsNullOrEmpty(currency))
             {
-                Utils.LogError($"Invalid currency provided to 'SendOfferBuyEvent'. SDK probably initialized not properly!");
+                Debug.LogError($"Invalid currency provided to 'SendOfferBuyEvent'. SDK probably initialized not properly!");
                 return null;
             }
 
@@ -215,19 +217,19 @@ namespace StrixSDK
         {
             if (String.IsNullOrEmpty(offerID))
             {
-                Utils.LogError($"Null or empty offerID in event 'offerShown'");
+                Debug.LogError($"Null or empty offerID in event 'offerShown'");
                 return null;
             }
             if (price < 0)
             {
-                Utils.LogError($"Invalid price in event 'offerShown'. Must be equal or greater than zero (zero = free).");
+                Debug.LogError($"Invalid price in event 'offerShown'. Must be equal or greater than zero (zero = free).");
                 return null;
             }
 
             var currency = PlayerPrefs.GetString("Strix_ClientCurrency", string.Empty);
             if (string.IsNullOrEmpty(currency))
             {
-                Utils.LogError($"Invalid currency fetched. SDK probably initialized not properly!");
+                Debug.LogError($"Invalid currency fetched. SDK probably initialized not properly!");
                 return null;
             }
 
@@ -258,31 +260,31 @@ namespace StrixSDK
         {
             if (String.IsNullOrEmpty(currencyID))
             {
-                Utils.LogError($"Null or empty currencyID in event 'economyEvent'. Make sure you give proper entity ID and it is marked as currency.");
+                Debug.LogError($"Null or empty currencyID in event 'economyEvent'. Make sure you give proper entity ID and it is marked as currency.");
                 return null;
             }
             if (type != EconomyTypes.sink && type != EconomyTypes.source)
             {
-                Utils.LogError($"Invalid type in event 'economyEvent'. Must be either 'sink' or 'source'.");
+                Debug.LogError($"Invalid type in event 'economyEvent'. Must be either 'sink' or 'source'.");
                 return null;
             }
             if (String.IsNullOrEmpty(origin))
             {
-                Utils.LogError($"Null or empty origin in event 'economyEvent'. Must be any string that identifies the origin of source/sink.");
+                Debug.LogError($"Null or empty origin in event 'economyEvent'. Must be any string that identifies the origin of source/sink.");
                 return null;
             }
 
             Entity correspondingEntity = Entities.GetEntityById(currencyID);
             if (correspondingEntity == null)
             {
-                Utils.LogError($"No currency entity found in event 'economyEvent' by ID '{currencyID}'. The ID must be an existing entityID with enabled 'Is Currency' switch.");
+                Debug.LogError($"No currency entity found in event 'economyEvent' by ID '{currencyID}'. The ID must be an existing entityID with enabled 'Is Currency' switch.");
                 return null;
             }
             else
             {
                 if (!correspondingEntity.IsCurrency)
                 {
-                    Utils.LogError($"Entity with ID '{currencyID}' provided in event 'economyEvent' is not a valid currency entity. Check if this entity has 'Is Currency' switch enabled.");
+                    Debug.LogError($"Entity with ID '{currencyID}' provided in event 'economyEvent' is not a valid currency entity. Check if this entity has 'Is Currency' switch enabled.");
                     return null;
                 }
             }
@@ -315,12 +317,12 @@ namespace StrixSDK
         {
             if (!Enum.IsDefined(typeof(AdTypes), adType))
             {
-                Utils.LogError($"Invalid ad type in event 'adEvent'.");
+                Debug.LogError($"Invalid ad type in event 'adEvent'.");
                 return null;
             }
             if (String.IsNullOrEmpty(adNetwork))
             {
-                Utils.LogError($"Null or empty ad network in event 'adEvent'. Must be any string that identifies your ad provider.");
+                Debug.LogError($"Null or empty ad network in event 'adEvent'. Must be any string that identifies your ad provider.");
                 return null;
             }
 
@@ -351,17 +353,17 @@ namespace StrixSDK
         {
             if (!Enum.IsDefined(typeof(SeverityTypes), severity))
             {
-                Utils.LogError($"Invalid severity type in event 'reportEvent'. Must be 'debug', 'warn', 'info', 'error' or 'fatal'.");
+                Debug.LogError($"Invalid severity type in event 'reportEvent'. Must be 'debug', 'warn', 'info', 'error' or 'fatal'.");
                 return null;
             }
             if (String.IsNullOrEmpty(reportID))
             {
-                Utils.LogError($"Null or empty report ID in event 'reportEvent'. Must be any string that identifies message category.");
+                Debug.LogError($"Null or empty report ID in event 'reportEvent'. Must be any string that identifies message category.");
                 return null;
             }
             if (String.IsNullOrEmpty(message))
             {
-                Utils.LogError($"Null or empty message in event 'reportEvent'. Must be any string that describes the actual report message.");
+                Debug.LogError($"Null or empty message in event 'reportEvent'. Must be any string that describes the actual report message.");
                 return null;
             }
 
@@ -410,7 +412,7 @@ namespace StrixSDK
             {
                 if (String.IsNullOrEmpty(time))
                 {
-                    Utils.LogError($"Could not retrieve valid time from PlayerPrefs for '{eventID}' event. Got: {time}");
+                    Debug.LogError($"Could not retrieve valid time from PlayerPrefs for '{eventID}' event. Got: {time}");
                 }
             }
             return null;
@@ -435,12 +437,20 @@ namespace StrixSDK
 
         private void OnApplicationPause()
         {
-            _ = SendEndSessionEvent(null);
+            if (!endSessionWasSent)
+            {
+                _ = SendEndSessionEvent(null);
+                endSessionWasSent = true;
+            }
         }
 
         private void OnApplicationQuit()
         {
-            _ = SendEndSessionEvent(null);
+            if (!endSessionWasSent)
+            {
+                _ = SendEndSessionEvent(null);
+                endSessionWasSent = true;
+            }
         }
 
         #endregion Session end/crash handler

@@ -28,12 +28,6 @@ public static class StrixSettingsProvider
                     selectedIndex = EditorGUILayout.Popup("Branch", selectedIndex, BranchOptions);
                     config.branch = BranchOptions[selectedIndex];
 
-                    if (EditorGUI.EndChangeCheck())
-                    {
-                        EditorUtility.SetDirty(config);
-                        AssetDatabase.SaveAssets();
-                    }
-
                     config.fetchUpdatesInRealTime = EditorGUILayout.Toggle("Fetch Updates in Real Time", config.fetchUpdatesInRealTime);
 
                     if (EditorGUI.EndChangeCheck())

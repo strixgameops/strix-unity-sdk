@@ -17,7 +17,7 @@ namespace StrixSDK
 {
     public class Strix : MonoBehaviour
     {
-        private static string StrixSDKVersion = "1.0.0";
+        private static string StrixSDKVersion = "1.1.2";
 
         private static Strix _instance;
 

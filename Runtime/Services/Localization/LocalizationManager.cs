@@ -47,46 +47,8 @@ namespace StrixSDK.Runtime
 
         public void Initialize()
         {
-            //StartCoroutine(UpdateLocalization());
         }
 
-        // TODO: Localization table auto update
-        //private IEnumerator UpdateLocalization()
-        //{
-        //    var localizationDocuments = Content.LoadAllFromFile("localization");
-        //    if (localizationDocuments == null)
-        //    {
-        //        Debug.LogError($"No localization items found");
-        //        yield break;
-        //    }
-
-        //    var table = LocalizationSettings.StringDatabase.GetTableAsync("My Table");
-        //    yield return table;
-
-        //    Addressables.ResourceManager.Acquire(table);
-
-        //    var stringTable = table.Result;
-        //    var entry = stringTable.GetEntry("Some Entry");
-        //    entry.Value = "Hello World";
-
-        //    var newEntry = stringTable.AddEntry("New Entry", "Localized Value");
-
-        //    M_LocalizationItem[] items = ConvertListToArray<M_LocalizationItem>(localizationDocuments);
-        //    foreach (var item in items)
-        //    {
-        //        foreach (var translation in item.Items)
-        //        {
-        //            yield return AddOrUpdateLocalizationEntry(item.Key, translation.Code, translation.Value);
-        //        }
-        //    }
-
-        //    LocalizationSettings.StringDatabase.RefreshTableContents();
-        //}
-
-        //private static T[] ConvertListToArray<T>(List<dynamic> dynamicList)
-        //{
-        //    return dynamicList.Cast<T>().ToArray();
-        //}
         public string GetLocalizedString(string key)
         {
             M_LocalizationItem localizationItem = Content.LoadFromFile<M_LocalizationItem>("localization", key);

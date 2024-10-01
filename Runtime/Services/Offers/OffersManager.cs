@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using StrixSDK.Editor.Config;
 using StrixSDK.Runtime.APIClient;
 using StrixSDK.Runtime.Models;
+using System.Numerics;
 
 namespace StrixSDK.Runtime
 {
@@ -227,25 +228,33 @@ namespace StrixSDK.Runtime
                     resultPrice = offer.Pricing.Amount;
                 }
 
-                Debug.Log($"Found ASKU: {asku}");
-                if (asku != null)
+                Debug.Log($"Offer ASKU: {asku}");
+
+                if (asku != null && offer.Pricing.Type == "money")
                 {
                     // Real-money offer
                     realMoneyIAP = true;
                     string receipt = await OffersManager.Instance.iapManagerInstance.CallBuyIAP(asku);
                     if (receipt != null)
                     {
+                        var sessionID = PlayerPrefs.GetString("Strix_SessionID", string.Empty);
+                        if (string.IsNullOrEmpty(sessionID))
+                        {
+                            Debug.LogWarning("Problem while validating offer receipt: Session ID is invalid.");
+                        }
+
                         // Additional backend validation
                         StrixSDKConfig config = StrixSDKConfig.Instance;
                         var body = new Dictionary<string, object>()
                         {
                             {"device", Strix.clientID},
                             {"secret", config.apiKey},
+                            {"session", sessionID},
                             {"build", config.branch},
                             {"asku", asku},
                             {"offerID", offer.InternalId},
                             {"receipt", receipt},
-                            {"resultPrice", resultPrice },
+                            {"resultPrice", resultPrice},
                             {"currency", currency}
                         };
                         var result = await Client.Req(API.ValidateReceipt, body);
@@ -264,22 +273,52 @@ namespace StrixSDK.Runtime
                         Debug.LogError("Purchase failed.");
                     }
                 }
-                else
+                else if (offer.Pricing.Type == "entity")
                 {
-                    // Entity currency offer // No implementation at this moment
+                    string entityId = EntityHelperMethods.GetEntityIdByNodeId(currency);
+                    if (string.IsNullOrEmpty(entityId))
+                    {
+                        Debug.LogError($"Player tried to buy offer that has entity {currency} as price, but it's not present in system now!");
+                        success = false;
+                    }
+                    else
+                    {
+                        var playerCurrencyAmount = await Inventory.GetInventoryItemAmount(entityId);
+
+                        if (BigInteger.Parse(playerCurrencyAmount) >= (BigInteger)resultPrice)
+                        {
+                            _ = Inventory.RemoveInventoryItem(entityId, resultPrice.ToString());
+                            success = true;
+                        }
+                    }
                 }
 
-                // Make local changes. Backend will do the real job by itself
                 WarehouseHelperMethods.IncrementPlayerOfferPurchase(offerId);
 
-                if (realMoneyIAP == true)
+                // Give out offer's content
+                if (realMoneyIAP)
                 {
+                    if (success)
+                    {
+                        for (int i = 0; i < offer.Content.Count; i++)
+                        {
+                            _ = Inventory.AddInventoryItem(offer.Content[i].EntityId, offer.Content[i].Amount);
+                        }
+                    }
                     return success;
                 }
                 else
                 {
-                    _ = Analytics.SendOfferBuyEvent(GetOriginalOfferInternalId(offer.InternalId), resultPrice, currency, customData);
-                    return true;
+                    if (success)
+                    {
+                        for (int i = 0; i < offer.Content.Count; i++)
+                        {
+                            _ = Inventory.AddInventoryItem(offer.Content[i].EntityId, offer.Content[i].Amount);
+                        }
+                        // Send event
+                        _ = Analytics.SendOfferBuyEvent(GetOriginalOfferInternalId(offer.InternalId), resultPrice, currency, customData);
+                    }
+                    return success;
                 }
             }
             catch (Exception e)

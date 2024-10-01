@@ -704,5 +704,198 @@ namespace StrixSDK.Runtime
                 OffersHelperMethods.InvokeTriggeredOffers(offersToTrigger);
             }
         }
+
+        public static async Task<List<LeaderboardTimeframe>> GetLeaderboard(string leaderboardId)
+        {
+            // Loading config file
+            StrixSDKConfig config = StrixSDKConfig.Instance;
+
+            var buildType = config.branch;
+
+            var body = new Dictionary<string, object>()
+            {
+                {"device", Strix.clientID},
+                {"secret", config.apiKey},
+                {"build", buildType},
+                {"leaderboardID", leaderboardId},
+            };
+            var response = await Client.Req(API.GetLeaderboard, body);
+            var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
+            if (data != null)
+            {
+                if ((bool)data["success"])
+                {
+                    var lb = JsonConvert.DeserializeObject<List<LeaderboardTimeframe>>(JsonConvert.SerializeObject(data["data"]));
+                    return lb;
+                }
+                else
+                {
+                    Debug.LogError($"Error while fetching leaderboard with id {leaderboardId}. {(string)data["message"]}");
+                    return new List<LeaderboardTimeframe>();
+                }
+            }
+            return new List<LeaderboardTimeframe>();
+        }
+
+        public static async Task<List<InventoryItem>> GetInventoryItems()
+        {
+            // Loading config file
+            StrixSDKConfig config = StrixSDKConfig.Instance;
+
+            var buildType = config.branch;
+
+            var body = new Dictionary<string, object>()
+            {
+                {"device", Strix.clientID},
+                {"secret", config.apiKey},
+                {"build", buildType}
+            };
+            var response = await Client.Req(API.GetInventoryItems, body);
+            var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
+            if (data != null)
+            {
+                if ((bool)data["success"])
+                {
+                    var inv = JsonConvert.DeserializeObject<List<InventoryItem>>(JsonConvert.SerializeObject(data["data"]));
+
+                    for (int i = 0; i < inv.Count; i++)
+                    {
+                        string entityId = EntityHelperMethods.GetEntityIdByNodeId(inv[i].NodeId);
+                        if (string.IsNullOrEmpty(entityId))
+                        {
+                            Debug.LogError($"Player has item with nodeID {inv[i].NodeId} but it's not present in system now!");
+                        }
+                        else
+                        {
+                            inv[i].EntityId = entityId;
+                        }
+                    }
+
+                    return inv;
+                }
+                else
+                {
+                    Debug.LogError($"Error while fetching inventory items. {(string)data["message"]}");
+                    return new List<InventoryItem>();
+                }
+            }
+            return new List<InventoryItem>();
+        }
+
+        public static async Task<string> GetInventoryItemAmount(string entityId)
+        {
+            Entity entity = Entities.GetEntityById(entityId);
+            if (entity == null)
+            {
+                Debug.LogError($"Error while fetching inventory item amount for {entityId}");
+                return "0";
+            }
+
+            // Loading config file
+            StrixSDKConfig config = StrixSDKConfig.Instance;
+
+            var buildType = config.branch;
+
+            var body = new Dictionary<string, object>()
+            {
+                {"device", Strix.clientID},
+                {"secret", config.apiKey},
+                {"build", buildType},
+                {"nodeID", entity.NodeId}
+            };
+            var response = await Client.Req(API.GetInventoryItemAmount, body);
+            var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
+            if (data != null)
+            {
+                if ((bool)data["success"])
+                {
+                    return (string)data["data"];
+                }
+                else
+                {
+                    Debug.LogError($"Error while fetching inventory items. {(string)data["message"]}");
+                    return "0";
+                }
+            }
+            return "0";
+        }
+
+        public static async Task<bool> AddInventoryItem(string entityId, string amount)
+        {
+            Entity entity = Entities.GetEntityById(entityId);
+            if (entity == null)
+            {
+                Debug.LogError($"Error while adding inventory item {entityId}");
+                return false;
+            }
+
+            // Loading config file
+            StrixSDKConfig config = StrixSDKConfig.Instance;
+
+            var buildType = config.branch;
+
+            var body = new Dictionary<string, object>()
+            {
+                {"device", Strix.clientID},
+                {"secret", config.apiKey},
+                {"build", buildType},
+                {"nodeID", entity.NodeId},
+                {"amount", amount}
+            };
+            var response = await Client.Req(API.AddInventoryItem, body);
+            var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
+            if (data != null)
+            {
+                if ((bool)data["success"])
+                {
+                    return true;
+                }
+                else
+                {
+                    Debug.LogError($"Error while adding inventory item. {(string)data["message"]}");
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        public static async Task<bool> RemoveInventoryItem(string entityId, string amount)
+        {
+            Entity entity = Entities.GetEntityById(entityId);
+            if (entity == null)
+            {
+                Debug.LogError($"Error while removing inventory item for {entityId}");
+                return false;
+            }
+
+            // Loading config file
+            StrixSDKConfig config = StrixSDKConfig.Instance;
+
+            var buildType = config.branch;
+
+            var body = new Dictionary<string, object>()
+            {
+                {"device", Strix.clientID},
+                {"secret", config.apiKey},
+                {"build", buildType},
+                {"nodeID", entity.NodeId},
+                {"amount", amount}
+            };
+            var response = await Client.Req(API.RemoveInventoryItem, body);
+            var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
+            if (data != null)
+            {
+                if ((bool)data["success"])
+                {
+                    return true;
+                }
+                else
+                {
+                    Debug.LogError($"Error while removing inventory item. {(string)data["message"]}");
+                    return false;
+                }
+            }
+            return false;
+        }
     }
 }

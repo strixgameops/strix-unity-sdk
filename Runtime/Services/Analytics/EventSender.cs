@@ -84,7 +84,7 @@ namespace StrixSDK
                 {"payload", JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(payload)}
             };
 
-            Debug.Log($"Sending analytics event.");
+            Debug.Log($"Sending analytics event: {payload}");
 
             var response = await Client.Req(API.SendEvent, eventBody);
             if (response == "err")

@@ -343,7 +343,7 @@ namespace StrixSDK.Runtime
             if (parentEntity == null)
             {
                 Debug.LogError($"GetEntityChildren: No entity found by id '{entityId}'");
-                return null;
+                return new List<Entity>().ToArray();
             }
 
             // Get all entities that have "Parent" value equal to the given id

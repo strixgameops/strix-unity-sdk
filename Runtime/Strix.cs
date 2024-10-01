@@ -17,7 +17,7 @@ namespace StrixSDK
 {
     public class Strix : MonoBehaviour
     {
-        private static string StrixSDKVersion = "1.1.2";
+        private static string StrixSDKVersion = "1.2.0";
 
         private static Strix _instance;
 
@@ -73,6 +73,17 @@ namespace StrixSDK
 
         private static async Task<bool> RetryInitialize(string clientID)
         {
+            // We don't even retry if config is not set
+            StrixSDKConfig config = StrixSDKConfig.Instance;
+            if (string.IsNullOrEmpty(config.apiKey))
+            {
+                return false;
+            }
+            if (string.IsNullOrEmpty(config.branch))
+            {
+                return false;
+            }
+
             await Task.Delay(30000);
             IsInitialized = await InitSDK(clientID);
             return IsInitialized;
@@ -80,6 +91,7 @@ namespace StrixSDK
 
         private static async Task<bool> InitSDK(string clientId)
         {
+            Debug.Log("Calling InitSDK");
             // Loading config file
             StrixSDKConfig config = StrixSDKConfig.Instance;
             if (string.IsNullOrEmpty(config.apiKey))
@@ -103,8 +115,6 @@ namespace StrixSDK
                     {"engineVersion", Application.unityVersion},
                 };
 
-                Debug.Log($"Sending analytics event.");
-
                 var versionCheck = await Client.Req(API.CheckSDK, checkerBody);
                 var versionCheckResponse = JsonConvert.DeserializeObject<M_SDKVersionCheckResponse>(versionCheck);
                 if (versionCheckResponse.IsGood)
@@ -120,6 +130,7 @@ namespace StrixSDK
                 Analytics analyticsInstance = Analytics.Instance;
 
                 // We need to send newSession event and get the key we will use to access db
+                Debug.Log($"Sending initial analytics event.");
                 var result = await Analytics.SendNewSessionEvent(null);
 
                 if (!string.IsNullOrEmpty(result))

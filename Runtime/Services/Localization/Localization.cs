@@ -33,11 +33,6 @@ namespace StrixSDK
 
         private void Start()
         {
-            if (!Strix.IsInitialized)
-            {
-                Debug.Log($"StrixSDK isn't initialized. Localization system is not available.");
-                Destroy(gameObject);
-            }
         }
 
         #endregion References

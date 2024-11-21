@@ -1,6 +1,6 @@
 {
   "name": "com.strixgameops.strix-unity-sdk",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "displayName": "Strix SDK",
   "description": "Strix Game Ops plugin for analytics and live-ops",
   "documentationUrl": "https://strixgameops.com/docs/unity/integration",

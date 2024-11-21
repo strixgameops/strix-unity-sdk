@@ -173,7 +173,19 @@ namespace StrixSDK.Runtime.Db
                                 Content.ResolveCachedMedia(mediaIDs, "flows");
                             }
                         }
+                        else
+                        {
+                            throw new Exception("Data object is null! Please report to Strix support team.");
+                        }
                     }
+                    else
+                    {
+                        throw new Exception("Content request returned 'false' in 'success' field! Please report to Strix support team.");
+                    }
+                }
+                else
+                {
+                    throw new Exception("Content request returned as null! Please report to Strix support team.");
                 }
                 return true;
             }

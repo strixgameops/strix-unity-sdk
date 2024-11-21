@@ -1,5 +1,5 @@
 using UnityEngine;
-using StrixSDK.Editor.Config;
+using StrixSDK.Runtime.Config;
 using UnityEditor;
 
 public static class StrixSettingsProvider
@@ -28,7 +28,10 @@ public static class StrixSettingsProvider
                     selectedIndex = EditorGUILayout.Popup("Branch", selectedIndex, BranchOptions);
                     config.branch = BranchOptions[selectedIndex];
 
-                    config.fetchUpdatesInRealTime = EditorGUILayout.Toggle("Fetch Updates in Real Time", config.fetchUpdatesInRealTime);
+                    float originalValue = EditorGUIUtility.labelWidth;
+                    EditorGUIUtility.labelWidth = 250;
+                    config.fetchUpdatesInRealTime = EditorGUILayout.Toggle("Let players refetch new content in real-time", config.fetchUpdatesInRealTime, GUILayout.ExpandWidth(true));
+                    EditorGUIUtility.labelWidth = originalValue;
 
                     if (EditorGUI.EndChangeCheck())
                     {

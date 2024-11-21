@@ -62,6 +62,7 @@ namespace StrixSDK
             Offer offer = Instance.I_GetOfferById(offerId);
             if (offer != null)
             {
+                offer = FlowsManager.Instance.ExecuteFlow_OfferShown(offer);
                 Instance.I_StartOfferExpiration(offerId);
                 _ = Analytics.SendOfferShownEvent(offer.Id, offer.Price.Value, analyticsEventCustomData);
             }
@@ -69,13 +70,16 @@ namespace StrixSDK
         }
 
         /// <summary>
-        /// Returns offer with given ID, if it exists. Also sends analytics event which helps tracking offer decline rate. Conditionally triggers the start of expiration, if duration for the offer is set. User won't be able to retrieve the offer after it's time is up.
+        /// Returns offer with given ID, if it exists. Also sends analytics event which helps tracking offer decline rate. Conditionally triggers the start of expiration,
+        /// if duration for the offer is set. User won't be able to retrieve the offer after it's time is up.
         /// </summary>
         public static Offer ShowOffer(string offerId, bool startExpiration, Dictionary<string, object> analyticsEventCustomData)
         {
             Offer offer = Instance.I_GetOfferById(offerId);
+
             if (offer != null)
             {
+                offer = FlowsManager.Instance.ExecuteFlow_OfferShown(offer);
                 if (startExpiration)
                 {
                     Instance.I_StartOfferExpiration(offerId);

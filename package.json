@@ -1,0 +1,30 @@
+{
+  "name": "com.strixgameops.strix-unity-sdk",
+  "version": "1.2.0",
+  "displayName": "Strix SDK",
+  "description": "Strix Game Ops plugin for analytics and live-ops",
+  "documentationUrl": "https://strixgameops.com/docs/unity/integration",
+  "dependencies": {
+    "com.unity.purchasing": "4.12.0",
+    "com.unity.localization": "1.4.5",
+    "com.unity.nuget.newtonsoft-json": "3.2.1"
+  },
+  "keywords": [
+    "strix",
+    "analytics",
+    "game analytics",
+    "analysis",
+    "game analysis",
+    "item system",
+    "inventory system",
+    "liveops",
+    "live-ops",
+    "gameops",
+    "game-ops"
+  ],
+  "author": {
+    "name": "Strix GameOps",
+    "email": "team@strixgameops.com",
+    "url": "https://strixgameops.com/"
+  }
+}

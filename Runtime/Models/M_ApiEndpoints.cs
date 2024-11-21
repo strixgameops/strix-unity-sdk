@@ -4,8 +4,8 @@ namespace StrixSDK.Runtime.Models
 {
     public static class API
     {
-        private const string server = "https://tool.strixgameops.com";
-        //private const string server = "http://localhost:3005";
+        //private const string server = "https://tool.strixgameops.com";
+        private const string server = "http://localhost:3005";
 
         // Analytics
         public const string SendEvent = server + "/sdk/api/v1/analytics/sendEvent";
@@ -35,5 +35,6 @@ namespace StrixSDK.Runtime.Models
         public const string UpdateContent = server + "/sdk/api/v1/clientUpdate";
         public const string CheckSDK = server + "/sdk/api/sdkCheck";
         public const string HealthCheck = server + "/sdk/api/health";
+        public const string BackendAction = server + "/sdk/api/v1/backendAction";
     }
 }

@@ -26,11 +26,14 @@ namespace StrixSDK
 
     public class EntityConfig
     {
+        [JsonProperty("sid")]
+        public string Sid { get; set; }
+
         [JsonProperty("id")]
         public string Id { get; set; }
 
         [JsonProperty("values")]
-        public RawConfigValue[] Values { get; set; }
+        public RawConfigValue[] RawValues { get; set; } // For internal use. Stores all values of a config. Used to construct a personalized ready-to-use config when fetched
     }
 
     public class RawConfigValue

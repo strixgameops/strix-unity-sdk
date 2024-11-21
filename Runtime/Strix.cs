@@ -1,5 +1,5 @@
 ﻿using Newtonsoft.Json;
-using StrixSDK.Editor.Config;
+using StrixSDK.Runtime.Config;
 using StrixSDK.Runtime;
 using StrixSDK.Runtime.Db;
 using StrixSDK.Runtime.Models;
@@ -10,14 +10,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.Localization.Settings;
-using UnityEngine.Purchasing;
+using System.IO;
+using Newtonsoft.Json.Linq;
 
 namespace StrixSDK
 {
     public class Strix : MonoBehaviour
     {
-        private static string StrixSDKVersion = "1.2.0";
+        public static string StrixSDKVersion = "1.0.0";
 
         private static Strix _instance;
 
@@ -37,6 +37,7 @@ namespace StrixSDK
                         obj.name = typeof(Strix).ToString();
                     }
                 }
+                _instance.GetPackageVersion();
                 return _instance;
             }
         }
@@ -46,6 +47,25 @@ namespace StrixSDK
         public static string clientID;
 
         public static bool IsInitialized = false;
+
+        private void GetPackageVersion()
+        {
+            string currentDirectory = Directory.GetCurrentDirectory();
+            string jsonFilePath = Path.Combine(currentDirectory, "package.json");
+
+            if (File.Exists(jsonFilePath))
+            {
+                string jsonContent = File.ReadAllText(jsonFilePath);
+                JObject jsonObject = JObject.Parse(jsonContent);
+                string version = jsonObject["version"].ToString();
+
+                StrixSDKVersion = version;
+            }
+            else
+            {
+                Debug.LogError("File not found: " + jsonFilePath);
+            }
+        }
 
         public static async Task<bool> Initialize()
         {
@@ -155,7 +175,8 @@ namespace StrixSDK
                         ContentFetcher.Instance.FetchContentByType("stattemplates"),
                         ContentFetcher.Instance.FetchContentByType("offers"),
                         ContentFetcher.Instance.FetchContentByType("positionedOffers"),
-                        ContentFetcher.Instance.FetchContentByType("abtests")
+                        ContentFetcher.Instance.FetchContentByType("abtests"),
+                        ContentFetcher.Instance.FetchContentByType("flows")
                     };
 #if UNITY_ANDROID
                     if (!config.fetchUpdatesInRealTime)
@@ -186,6 +207,12 @@ namespace StrixSDK
                     OffersManager offersManagerInstance = OffersManager.Instance;
                     bool offersInit = offersManagerInstance.Initialize();
                     Debug.Log("OffersManager initialization finished.");
+
+                    //// Initialize flows manager
+                    Debug.Log("Starting FlowsManager initialization...");
+                    FlowsManager flowsManagerInstance = FlowsManager.Instance;
+                    bool flowsInit = flowsManagerInstance.Initialize();
+                    Debug.Log("FlowsManager initialization finished.");
 
 #if UNITY_ANDROID
                     if (transactionsInit && offersInit && entitiesInit && warehouseInit)
@@ -260,6 +287,12 @@ namespace StrixSDK
                 OffersManager offersManagerInstance = OffersManager.Instance;
                 bool offersInit = offersManagerInstance.Initialize();
                 Debug.Log("OffersManager initialization finished.");
+
+                //// Initialize flows manager
+                Debug.Log("Starting FlowsManager initialization...");
+                FlowsManager flowsManagerInstance = FlowsManager.Instance;
+                bool flowsInit = flowsManagerInstance.Initialize();
+                Debug.Log("FlowsManager initialization finished.");
             }
             catch (Exception ex)
             {

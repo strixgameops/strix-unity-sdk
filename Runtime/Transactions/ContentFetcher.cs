@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using StrixSDK.Runtime.Utils;
 using StrixSDK.Runtime.Models;
-using StrixSDK.Editor.Config;
+using StrixSDK.Runtime.Config;
 using System.Net.Http;
 
 using StrixSDK.Runtime.APIClient;
@@ -91,6 +91,7 @@ namespace StrixSDK.Runtime.Db
                             bool recache_Entities = false;
                             bool recache_StatTemplates = false;
                             bool recache_PositionOffers = false;
+                            bool recache_Flows = false;
                             foreach (JObject contentItem in data)
                             {
                                 int itemChecksum = (int)contentItem["checksum"];
@@ -129,6 +130,12 @@ namespace StrixSDK.Runtime.Db
                                         recache_PositionOffers = true;
                                         break;
 
+                                    case "flows":
+                                        await ProcessFlowMedia(contentItem);
+                                        Content.SaveToFile(contentType, contentItem);
+                                        recache_Flows = true;
+                                        break;
+
                                     default:
                                         break;
                                 }
@@ -160,6 +167,11 @@ namespace StrixSDK.Runtime.Db
                             {
                                 Content.RecacheExistingStatisticsTemplates();
                             }
+                            if (recache_Flows)
+                            {
+                                Content.RecacheExistingFlows();
+                                Content.ResolveCachedMedia(mediaIDs, "flows");
+                            }
                         }
                     }
                 }
@@ -173,6 +185,58 @@ namespace StrixSDK.Runtime.Db
         }
 
         #region Processing methods
+
+        private async Task ProcessFlowMedia(JToken flow)
+        {
+            var rootNode = flow["nodes"].ToObject<Node>();
+            await TraverseFlowNodes(rootNode);
+        }
+
+        private async Task TraverseFlowNodes(Node node)
+        {
+            await ProcessFlowNode(node);
+            if (node.Subnodes.Count > 0)
+            {
+                foreach (var n in node.Subnodes)
+                {
+                    await TraverseFlowNodes(n);
+                }
+            }
+        }
+
+        private async Task ProcessFlowNode(Node flowNode)
+        {
+            foreach (var item in flowNode.Data)
+            {
+                if (item.Value.GetType() == typeof(string) && item.Value.ToString().StartsWith("https://storage.googleapis.com/"))
+                {
+                    var fileUrl = (string)item.Value;
+                    if (!string.IsNullOrEmpty(fileUrl))
+                    {
+                        // Extract the file name from the URL
+                        var fileName = Path.GetFileName(fileUrl);
+
+                        // Check if the file already exists in the cache
+                        if (Content.DoesMediaExist(fileName))
+                        {
+                            // If the file exists, update the segment value to the hash directly
+                            flowNode.Data["value"] = fileName;
+                            Debug.Log($"File {fileName} already exists in cache, skipping download.");
+                        }
+                        else
+                        {
+                            var base64File = await DownloadFileAsBase64(fileUrl);
+                            if (!string.IsNullOrEmpty(base64File))
+                            {
+                                var hash = Content.CacheMedia(base64File, "flows");
+                                flowNode.Data["value"] = hash;
+                                mediaIDs.Add(hash);
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         private async Task ProcessEntityConfigMedia(JToken entity)
         {

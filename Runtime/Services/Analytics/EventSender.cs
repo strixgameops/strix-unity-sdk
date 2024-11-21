@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using StrixSDK.Editor.Config;
+using StrixSDK.Runtime.Config;
 using StrixSDK.Runtime.APIClient;
 using StrixSDK.Runtime.Models;
 using StrixSDK.Runtime.Service;
@@ -27,7 +27,7 @@ namespace StrixSDK
                     _instance = FindObjectOfType<Analytics>();
                     if (_instance == null)
                     {
-                        GameObject obj = new GameObject();
+                        GameObject obj = new();
                         _instance = obj.AddComponent<Analytics>();
                         obj.name = typeof(Analytics).ToString();
                     }
@@ -78,7 +78,7 @@ namespace StrixSDK
                 {"session", sessionID},
                 {"language", Application.systemLanguage.ToString()},
                 {"platform", Application.platform.ToString()},
-                {"gameVersion", Application.version.ToString()},
+                {"gameVersion", Application.version},
                 {"engineVersion", Application.unityVersion},
                 {"build", buildType},
                 {"payload", JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(payload)}
@@ -165,7 +165,7 @@ namespace StrixSDK
             }
             else
             {
-                Debug.LogError($"Could not retrieve valid time from PlayerPrefs for '{EventTypes.endSession.ToString()}' event. Got: {time}");
+                Debug.LogError($"Could not retrieve valid time from PlayerPrefs for '{nameof(EventTypes.endSession)}' event. Got: {time}");
                 return null;
             }
         }
@@ -422,6 +422,12 @@ namespace StrixSDK
 
         #region Session end/crash handler
 
+        /// <summary>
+        /// Called automatically from internally upon any log arise.
+        /// </summary>
+        /// <param name="logString"></param>
+        /// <param name="stackTrace"></param>
+        /// <param name="type"></param>
         private void LogCallback(string logString, string stackTrace, LogType type)
         {
             if (type == LogType.Exception)

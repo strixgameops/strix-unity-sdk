@@ -1,5 +1,5 @@
 using Newtonsoft.Json;
-using StrixSDK.Editor.Config;
+using StrixSDK.Runtime.Config;
 using StrixSDK.Runtime.APIClient;
 using StrixSDK.Runtime.Models;
 using System;
@@ -98,6 +98,22 @@ namespace StrixSDK.Runtime
 
     public static class WarehouseHelperMethods
     {
+        public static void RemoveSegmentFromPlayer(string segmentId)
+        {
+            if (PlayerManager.Instance._playerData.Segments.Contains(segmentId))
+            {
+                PlayerManager.Instance._playerData.Segments.Remove(segmentId);
+            }
+        }
+
+        public static void AddSegmentToPlayer(string segmentId)
+        {
+            if (!PlayerManager.Instance._playerData.Segments.Contains(segmentId))
+            {
+                PlayerManager.Instance._playerData.Segments.Add(segmentId);
+            }
+        }
+
         private static bool CheckElementFormatType(object value, string templateType)
         {
             switch (templateType)
@@ -676,15 +692,21 @@ namespace StrixSDK.Runtime
             {
                 case "onExit":
                     {
-                        PlayerManager.Instance._playerData.Segments.Remove(segmentId);
-                        Debug.LogError($"Changed (removed) player segment '{segmentId}'");
+                        if (PlayerManager.Instance._playerData.Segments.Contains(segmentId))
+                        {
+                            PlayerManager.Instance._playerData.Segments.Remove(segmentId);
+                            Debug.Log($"Changed (removed) player segment '{segmentId}'");
+                        }
                     }
                     break;
 
                 case "onEnter":
                     {
-                        PlayerManager.Instance._playerData.Segments.Add(segmentId);
-                        Debug.LogError($"Changed (added) player segment '{segmentId}'");
+                        if (!PlayerManager.Instance._playerData.Segments.Contains(segmentId))
+                        {
+                            PlayerManager.Instance._playerData.Segments.Add(segmentId);
+                            Debug.Log($"Changed (added) player segment '{segmentId}'");
+                        }
                     }
                     break;
 

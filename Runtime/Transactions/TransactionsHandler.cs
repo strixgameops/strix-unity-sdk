@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using StrixSDK.Runtime.Utils;
-using StrixSDK.Editor.Config;
+using StrixSDK.Runtime.Config;
 
 using Firebase;
 using Firebase.Messaging;

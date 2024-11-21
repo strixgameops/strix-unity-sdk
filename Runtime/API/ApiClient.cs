@@ -9,7 +9,7 @@ using Newtonsoft.Json;
 
 namespace StrixSDK.Runtime.APIClient
 {
-    internal static class Client
+    public static class Client
     {
         // Actual request handler for Req() wrapper
         private static async Task<string> QueueRequest(UnityWebRequest req)

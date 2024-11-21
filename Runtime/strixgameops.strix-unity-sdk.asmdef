@@ -1,0 +1,22 @@
+{
+    "name": "StrixSDKRuntime",
+    "rootNamespace": "StrixSDKRuntime",
+    "references": [
+        "Unity.Localization",
+        "Unity.Services.Core",
+        "Unity.Services.Core.Environments",
+        "UnityEngine.Purchasing",
+        "UnityEngine.Purchasing.Stores",
+        "UnityEngine.Purchasing.Apple",
+        "UnityEngine.Purchasing.AppleCore"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

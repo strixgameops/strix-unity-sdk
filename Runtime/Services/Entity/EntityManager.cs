@@ -6,7 +6,6 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Video;
-using static UnityEngine.Rendering.DebugUI;
 
 namespace StrixSDK.Runtime
 {
@@ -304,6 +303,17 @@ namespace StrixSDK.Runtime
             return entity.Id;
         }
 
+        public static Entity GetEntityByNodeId(string nodeId)
+        {
+            Entity entity = EntityManager.Instance._entities.FirstOrDefault(e => e.NodeId == nodeId);
+            if (entity == null)
+            {
+                Debug.LogError($"GetEntityIdByNodeId: No entity found by node id '{nodeId}'");
+                return null;
+            }
+            return entity;
+        }
+
         public static Entity[] GetAllEntities()
         {
             return EntityManager.Instance._entities;
@@ -318,8 +328,16 @@ namespace StrixSDK.Runtime
                 return null;
             }
 
-            EntityConfig[] configs = EntitiesContent.LoadConfigsFromFile(entity.NodeId);
-            return configs;
+            List<EntityConfig> configs = EntitiesContent.LoadConfigsFromFile(entity.NodeId).ToList();
+            if (configs.Count > 0)
+            {
+                for (int i = 0; i < configs.Count; i++)
+                {
+                    configs[i] = FlowsManager.Instance.ExecuteFlow_ConfigParamRetrieved(configs[i]);
+                }
+            }
+
+            return configs.ToArray();
         }
 
         public static EntityConfig GetEntityConfig(string entityId, string configId)
@@ -332,6 +350,11 @@ namespace StrixSDK.Runtime
             }
 
             EntityConfig config = EntitiesContent.LoadConfigFromFile(entity.NodeId, configId);
+
+            if (config != null)
+            {
+                config = FlowsManager.Instance.ExecuteFlow_ConfigParamRetrieved(config);
+            }
 
             return config;
         }
@@ -370,23 +393,14 @@ namespace StrixSDK.Runtime
 
         public static object GetConfigValue(EntityConfig config, string fieldKey, bool autoConvert)
         {
-            RawConfigValue valueConfig = FindConfigValue(config.Values, fieldKey);
+            RawConfigValue valueConfig = FindConfigValue(config.RawValues, fieldKey);
             if (valueConfig.Values != null)
             {
                 // Map type scenario
                 List<ConfigValue> formattedValues = new List<ConfigValue>();
                 foreach (var value in valueConfig.Values)
                 {
-                    // Check if value is being AB tested and we're in the test. Pick the first matching segment for now, probably should implement priorities later.
-                    ABTest[] filteredABTests = PlayerManager.Instance._abTests
-                        .Where(test => test.Subject?.Type == "entity")
-                        .ToArray();
-                    var abTestSegmentIds = filteredABTests
-                        .Select(test => $"abtest_{test.InternalId}")
-                        .ToList();
-
-                    var firstMatchingSegment = value.Segments?
-                        .FirstOrDefault(segment => abTestSegmentIds.Contains(segment.SegmentID));
+                    var firstMatchingSegment = PickAppropriateSegmentedValue(valueConfig);
 
                     if (firstMatchingSegment != null)
                     {
@@ -405,16 +419,7 @@ namespace StrixSDK.Runtime
             {
                 // Other value types
                 //
-                // Check if value is being AB tested and we're in the test. Pick the first matching segment for now, probably should implement priorities later.
-                ABTest[] filteredABTests = PlayerManager.Instance._abTests
-                        .Where(test => test.Subject?.Type == "entity")
-                        .ToArray();
-                var abTestSegmentIds = filteredABTests
-                    .Select(test => $"abtest_{test.InternalId}")
-                    .ToList();
-
-                var firstMatchingSegment = valueConfig.Segments?
-                    .FirstOrDefault(segment => abTestSegmentIds.Contains(segment.SegmentID));
+                var firstMatchingSegment = PickAppropriateSegmentedValue(valueConfig);
 
                 if (firstMatchingSegment != null)
                 {
@@ -427,6 +432,22 @@ namespace StrixSDK.Runtime
                     return FormatConfigFieldValue(valueConfig, "everyone", autoConvert);
                 }
             }
+        }
+
+        public static RawSegmentValue PickAppropriateSegmentedValue(RawConfigValue valueConfig)
+        {
+            // Check if value is being AB tested and we're in the test. Pick the first matching segment for now, probably should implement priorities later.
+            ABTest[] filteredABTests = PlayerManager.Instance._abTests
+                    .Where(test => test.Subject?.Type == "entity")
+                    .ToArray();
+            var abTestSegmentIds = filteredABTests
+                .Select(test => $"abtest_{test.InternalId}")
+                .ToList();
+
+            var firstMatchingSegment = valueConfig.Segments?
+                .FirstOrDefault(segment => abTestSegmentIds.Contains(segment.SegmentID));
+
+            return firstMatchingSegment;
         }
 
         private static RawConfigValue FindConfigValue(RawConfigValue[] values, string fieldKey)

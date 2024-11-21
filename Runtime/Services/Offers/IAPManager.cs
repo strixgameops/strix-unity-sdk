@@ -1,14 +1,76 @@
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.Purchasing;
-using Unity.Services.Core;
-using Unity.Services.Core.Environments;
-using UnityEngine.Purchasing.Extension;
 using System;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using UnityEngine;
+
+using UnityEngine.Purchasing;
+using UnityEngine.Purchasing.Extension;
+
+using Unity.Services.Core;
+using Unity.Services.Core.Environments;
 
 namespace StrixSDK.Runtime
 {
+    public class StrixIAPManager : MonoBehaviour
+    {
+        private static StrixIAPManager _instance;
+
+        public static StrixIAPManager Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = FindObjectOfType<StrixIAPManager>();
+                    if (_instance == null)
+                    {
+                        GameObject obj = new GameObject();
+                        _instance = obj.AddComponent<StrixIAPManager>();
+                        obj.name = typeof(StrixIAPManager).ToString();
+                    }
+                }
+                return _instance;
+            }
+        }
+
+        public IAPManager iapManagerInstance;
+
+        public bool StartupIAPManager(List<string> validProductIDs)
+        {
+            //Debug.LogWarning($"Code for IAP manager is not enabled. Could not initialize Strix Unity Purchasing integration.");
+            //return false;
+            if (iapManagerInstance == null)
+            {
+                iapManagerInstance = new IAPManager();
+                iapManagerInstance.Initialize(validProductIDs);
+            }
+            else
+            {
+                iapManagerInstance.ReInitializeAfterUpdate(validProductIDs);
+            }
+            return true;
+        }
+
+        public async Task<string> CallBuyIAP(string productId)
+        {
+            //throw new Exception($"IAP manager code is not enabled! Could not make purchase.");
+            return await iapManagerInstance.CallBuyIAP(productId);
+        }
+
+        private void Awake()
+        {
+            if (_instance == null)
+            {
+                _instance = this;
+                DontDestroyOnLoad(gameObject);
+            }
+            else if (_instance != this)
+            {
+                Destroy(gameObject);
+            }
+        }
+    }
+
     public class IAPManager : IDetailedStoreListener
     {
         private IStoreController controller;
@@ -78,9 +140,9 @@ namespace StrixSDK.Runtime
                 {
                     var options = new InitializationOptions()
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-                        .SetEnvironmentName("production");
+                        .SetEnvironmentName("development");
 #else
-                        .SetEnvironmentName("production");
+                                .SetEnvironmentName("production");
 #endif
                     await UnityServices.InitializeAsync(options).ContinueWith(task => Debug.Log("Unity Gaming Service successfully initialized!"));
                     return true;

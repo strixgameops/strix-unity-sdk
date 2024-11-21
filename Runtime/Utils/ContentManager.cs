@@ -6,8 +6,6 @@ using UnityEngine;
 using StrixSDK.Runtime.Models;
 using Newtonsoft.Json.Linq;
 using System.Security.Cryptography;
-using System.Xml.Linq;
-using UnityEngine.Localization.Settings;
 
 namespace StrixSDK.Runtime.Utils
 {
@@ -30,6 +28,11 @@ namespace StrixSDK.Runtime.Utils
         public static void RecacheExistingOffers()
         {
             OffersManager.Instance.RefreshOffers();
+        }
+
+        public static void RecacheExistingFlows()
+        {
+            FlowsManager.Instance.RefreshFlows();
         }
 
         public static void RecacheExistingEntities()
@@ -188,6 +191,7 @@ namespace StrixSDK.Runtime.Utils
 
         public static void ResolveCachedMedia(List<string> mediaIDs, string mediaType)
         {
+            // Remove media files we should not cache anymore
             try
             {
                 string directoryPath = Path.Combine(Application.persistentDataPath, "Plugins", "StrixSDK", "StrixData", "cached", "media", mediaType);

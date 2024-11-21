@@ -27,7 +27,7 @@ namespace StrixSDK
         public string Desc { get; set; } // Localized offer description
 
         [JsonProperty("pricing")]
-        public OfferPricing Pricing { get; set; } // Field used internally. Contains the full pricing table (discount applied)
+        public OfferPricing Pricing { get; set; } // For internal use. Contains the full pricing table (discount already applied for real-money prices, not-applied for entity-based amount)
 
         public OfferPrice Price { get; set; } // Synthethic field which is made when Get methods called and contains user's currency price item. If not a real-money IAP,
 

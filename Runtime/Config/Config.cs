@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace StrixSDK.Editor.Config
+namespace StrixSDK.Runtime.Config
 {
     [System.Serializable]
     public class StrixSDKConfig : ScriptableObject

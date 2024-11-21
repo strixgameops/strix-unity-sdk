@@ -5,10 +5,9 @@ using StrixSDK.Runtime;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.Purchasing;
 using System.Globalization;
 using System.Threading.Tasks;
-using StrixSDK.Editor.Config;
+using StrixSDK.Runtime.Config;
 using StrixSDK.Runtime.APIClient;
 using StrixSDK.Runtime.Models;
 using System.Numerics;
@@ -42,8 +41,7 @@ namespace StrixSDK.Runtime
         public Offer[] _offers;
 
         public PositionedOffer[] _positionedOffers;
-
-        public IAPManager iapManagerInstance;
+        public bool IAPManagerInitiated = false;
 
         private void Awake()
         {
@@ -93,16 +91,17 @@ namespace StrixSDK.Runtime
 
             try
             {
-                if (iapManagerInstance == null)
+                List<string> validProductIDs = GetValidProductIDs(_offers);
+                bool IAPInit = StrixIAPManager.Instance.StartupIAPManager(validProductIDs);
+                if (IAPInit)
                 {
-                    List<string> validProductIDs = GetValidProductIDs(_offers);
-                    iapManagerInstance = new IAPManager();
-                    iapManagerInstance.Initialize(validProductIDs);
+                    IAPManagerInitiated = true;
+                    Debug.Log($"IAP manager initiated successfully.");
                 }
                 else
                 {
-                    List<string> validProductIDs = GetValidProductIDs(_offers);
-                    iapManagerInstance.ReInitializeAfterUpdate(validProductIDs);
+                    IAPManagerInitiated = false;
+                    Debug.LogWarning($"IAP manager was not initiated.");
                 }
             }
             catch (Exception e)
@@ -234,7 +233,7 @@ namespace StrixSDK.Runtime
                 {
                     // Real-money offer
                     realMoneyIAP = true;
-                    string receipt = await OffersManager.Instance.iapManagerInstance.CallBuyIAP(asku);
+                    string receipt = await StrixIAPManager.Instance.CallBuyIAP(asku);
                     if (receipt != null)
                     {
                         var sessionID = PlayerPrefs.GetString("Strix_SessionID", string.Empty);
@@ -452,11 +451,51 @@ namespace StrixSDK.Runtime
             }
         }
 
-        private static Offer GetOfferByInternalId(string id)
+        public static Offer GetOfferByInternalId(string id, bool applyModifications)
         {
             try
             {
                 Offer offer = OffersManager.Instance._offers.FirstOrDefault(p => p.InternalId == id);
+
+                if (offer == null)
+                {
+                    Debug.LogError($"GetOfferByInternalId: No offer found with id '{id}'.");
+                    return null;
+                }
+
+                if (applyModifications)
+                {
+                    // If player participates in the AB test for this offer, find it and try to give an intended variation of the requested offer
+                    var allTests = PlayerManager.Instance._abTests.Where(t => t.Subject.ItemId == offer.InternalId).ToList();
+                    if (allTests.Any())
+                    {
+                        var playerTests = PlayerManager.Instance._playerData.ABTests;
+                        if (playerTests != null && playerTests.Any())
+                        {
+                            foreach (var playerTestId in playerTests)
+                            {
+                                var matchingTest = allTests.FirstOrDefault(t => t.Id == playerTestId);
+                                if (matchingTest != null)
+                                {
+                                    // If the player IS IN the AB test and we successfully validated it, try to get the corresponding variation of the offer
+                                    var tempOffer = OffersManager.Instance._offers
+                                        .FirstOrDefault(p => p.InternalId == offer.InternalId + "|" + matchingTest.InternalId);
+
+                                    if (tempOffer != null)
+                                    {
+                                        offer = tempOffer;
+                                    }
+                                    else
+                                    {
+                                        Debug.LogError($"GetOfferByInternalId: Unexpected behavior while fetching offer '{id}'. Current player is seen to participate in the AB test with this offer, though the code failed to give him a variation of the offer.");
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+
                 var check = IsAccessible(offer.InternalId);
                 if (!check)
                 {
@@ -638,6 +677,7 @@ namespace StrixSDK.Runtime
                 else
                 {
                     Offer[] offers = OffersManager.Instance._offers;
+
                     return offers;
                 }
             }
@@ -736,13 +776,11 @@ namespace StrixSDK.Runtime
                     }
                 }
 
-                OfferPrice price = new OfferPrice
+                return new OfferPrice
                 {
                     Value = currency.Value,
                     Currency = currency.CurrencyCode
                 };
-
-                return price;
             }
             catch (Exception ex)
             {
@@ -816,7 +854,7 @@ namespace StrixSDK.Runtime
             List<Offer> offersList = new List<Offer>();
             foreach (var offer in offers)
             {
-                var o = GetOfferByInternalId(offer);
+                var o = GetOfferByInternalId(offer, true);
                 if (o != null)
                 {
                     offersList.Add(o);
@@ -834,6 +872,14 @@ namespace StrixSDK.Runtime
         /// <param name="offers">The list of offers that got triggered by some change</param>
         public static void InvokeTriggeredOffers(List<Offer> offers)
         {
+            foreach (var offer in offers)
+            {
+                if (offer != null)
+                {
+                    StartOfferExpiration(offer.Id);
+                    _ = Analytics.SendOfferShownEvent(offer.Id, offer.Price.Value, null);
+                }
+            }
             OnOffersTriggered?.Invoke(offers);
         }
     }

@@ -11,7 +11,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using System.IO;
+
+#if UNITY_EDITOR
+
+using UnityEditor;
 using Newtonsoft.Json.Linq;
+
+#endif
 
 namespace StrixSDK
 {
@@ -37,7 +43,6 @@ namespace StrixSDK
                         obj.name = typeof(Strix).ToString();
                     }
                 }
-                _instance.GetPackageVersion();
                 return _instance;
             }
         }
@@ -48,9 +53,11 @@ namespace StrixSDK
 
         public static bool IsInitialized = false;
 
-        private void GetPackageVersion()
+        private static void GetPackageVersion()
         {
-            string currentDirectory = Directory.GetCurrentDirectory();
+#if UNITY_EDITOR
+            string scriptPath = AssetDatabase.GetAssetPath(MonoScript.FromMonoBehaviour(Instance));
+            var currentDirectory = Path.Combine(Path.GetDirectoryName(scriptPath), "../");
             string jsonFilePath = Path.Combine(currentDirectory, "package.json");
 
             if (File.Exists(jsonFilePath))
@@ -65,6 +72,7 @@ namespace StrixSDK
             {
                 Debug.LogError("File not found: " + jsonFilePath);
             }
+#endif
         }
 
         public static async Task<bool> Initialize()
@@ -128,6 +136,8 @@ namespace StrixSDK
             PlayerPrefs.SetString("Strix_SessionStartTime", DateTime.Now.ToString());
             try
             {
+#if UNITY_EDITOR
+                GetPackageVersion();
                 var checkerBody = new Dictionary<string, object>()
                 {
                     {"platform", Application.platform.ToString()},
@@ -145,6 +155,7 @@ namespace StrixSDK
                 {
                     Debug.LogWarning($"{versionCheckResponse.Message}");
                 }
+#endif
 
                 // Make analytics instance. It will listen for Unity logs and report any errors. Make it before all calls to catch any errors.
                 Analytics analyticsInstance = Analytics.Instance;

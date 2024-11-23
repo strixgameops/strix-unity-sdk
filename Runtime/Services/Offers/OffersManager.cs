@@ -286,7 +286,7 @@ namespace StrixSDK.Runtime
 
                         if (BigInteger.Parse(playerCurrencyAmount) >= (BigInteger)resultPrice)
                         {
-                            _ = Inventory.RemoveInventoryItem(entityId, resultPrice.ToString());
+                            _ = Inventory.RemoveInventoryItem(entityId, (int)resultPrice);
                             success = true;
                         }
                     }
@@ -712,7 +712,7 @@ namespace StrixSDK.Runtime
                     // Only check expiration if it's not null in player's data (e.g. offer expiration was never triggered).
                     if (offerData.ExpirationDate != null)
                     {
-                        DateTime parsedExpiration = DateTime.ParseExact(offerData.ExpirationDate, "yyyy-MM-ddTHH:mm:ss.fffffff", CultureInfo.InvariantCulture);
+                        DateTime parsedExpiration = DateTime.ParseExact(offerData.ExpirationDate, "yyyy-MM-ddTHH:mm:ss.fffffffzzz", CultureInfo.InvariantCulture);
                         DateTime currentTime = DateTime.Now;
                         if (parsedExpiration != null)
                         {
@@ -863,7 +863,9 @@ namespace StrixSDK.Runtime
             return offersList;
         }
 
-        // "Offers.cs" are subscribed to this event
+        /// <summary>
+        /// "Offers.cs" is subscribed to this event
+        /// </summary>
         public static event Action<List<Offer>> OnOffersTriggered;
 
         /// <summary>

@@ -27,19 +27,26 @@ namespace StrixSDK
                         obj.name = typeof(Offers).ToString();
                     }
                 }
+
                 return _instance;
             }
         }
 
         private OffersManager offersManagerInstance;
 
-        private void Start()
+        private void Awake()
         {
             if (!Strix.IsInitialized)
             {
                 Debug.Log($"StrixSDK isn't initialized. Offers system is not available.");
                 Destroy(gameObject);
             }
+            OffersHelperMethods.OnOffersTriggered += InvokeTriggeredOffers;
+        }
+
+        private void OnDestroy()
+        {
+            OffersHelperMethods.OnOffersTriggered -= InvokeTriggeredOffers;
         }
 
         #endregion References
@@ -183,7 +190,7 @@ namespace StrixSDK
         public static event Action<List<Offer>> OnOffersTriggered;
 
         /// <summary>
-        /// Internal method to invoke OnOffersTriggered event. Called from OffersManager -> PlayerManager
+        /// Internal method to invoke OnOffersTriggered event. Called from OffersManager or PlayerManager
         /// </summary>
         /// <param name="offers"></param>
         private static void InvokeTriggeredOffers(List<Offer> offers)

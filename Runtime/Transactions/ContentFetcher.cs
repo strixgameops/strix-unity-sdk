@@ -55,6 +55,100 @@ namespace StrixSDK.Runtime.Db
 
         private static List<string> mediaIDs = new List<string>();
 
+        /// <summary>
+        /// Makes a checksum checkup for specified content types. If server and local checksums differ, initiate fetch for such content. Updates only mismatched content.
+        /// </summary>
+        /// <param name="contentTypes"></param>
+        /// <returns>True if operation is successful and something was updated. False if no update was done for some reason.</returns>
+        public async Task<bool> UpdateContentByTypes(List<string> contentTypes)
+        {
+            var typesToFetch = await ChecksumCheckup(contentTypes);
+            if (typesToFetch != null && typesToFetch.Count > 0)
+            {
+                var fetchContent = new List<Task>();
+                foreach (string type in typesToFetch)
+                {
+                    fetchContent.Add(FetchContentByType(type));
+                }
+                if (fetchContent.Count > 0)
+                {
+                    await Task.WhenAll(fetchContent);
+                }
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Takes content types we want to get checksum for.
+        /// </summary>
+        /// <param name="contentTypes"></param>
+        /// <returns>A list of content types thas has checksum mismatch and need to be updated.</returns>
+        public async Task<List<string>> ChecksumCheckup(List<string> contentTypes)
+        {
+            var contentToUpdate = new List<string>();
+            try
+            {
+                // Loading config file
+                StrixSDKConfig config = StrixSDKConfig.Instance;
+
+                var buildType = config.branch;
+
+                var clientID = PlayerPrefs.GetString("Strix_ClientID", string.Empty);
+                if (string.IsNullOrEmpty(clientID))
+                {
+                    Debug.LogError("Error while making Strix's checksum checkup: client ID or Session ID is invalid.");
+                    return new List<string>();
+                }
+
+                var checkupBody = new Dictionary<string, object>()
+                {
+                    {"device", clientID},
+                    {"secret", config.apiKey},
+                    {"build", buildType},
+                    {"tableNames", contentTypes}
+                };
+                var result = await Client.Req(API.ChecksumCheckup, checkupBody);
+                var doc = JsonConvert.DeserializeObject<Dictionary<string, object>>(result);
+                if (doc != null)
+                {
+                    if ((bool)doc["success"])
+                    {
+                        var checksums = JsonConvert.DeserializeObject<Dictionary<string, object>>(doc["data"].ToString());
+
+                        // Iterate through each field in the data
+                        foreach (var field in checksums)
+                        {
+                            // Compare the checksum in data with storedChecksum
+                            int remoteChecksum = Convert.ToInt32(field.Value);
+                            int storedChecksum = Content.GetCacheChecksum(field.Key);
+
+                            Debug.Log($"Comparing checksums for '{field.Key}'. Remote: {remoteChecksum}, Local: {storedChecksum}");
+
+                            if (remoteChecksum != storedChecksum || storedChecksum == -1)
+                            {
+                                Debug.LogWarning($"Checksum mismatch for table '{field.Key}'. Remote: {remoteChecksum}, Local: {storedChecksum}");
+                                contentToUpdate.Add(field.Key);
+                            }
+                            else
+                            {
+                                Debug.Log($"Table '{field.Key}' is up to date!");
+                            }
+                        }
+                    }
+                }
+                return contentToUpdate;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error while checking for content updates for type '{contentTypes}': {ex.Message}");
+                return contentToUpdate;
+            }
+        }
+
         public async Task<bool> FetchContentByType(string contentType)
         {
             try

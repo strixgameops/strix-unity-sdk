@@ -179,26 +179,32 @@ namespace StrixSDK
                     bool transactionsInit = await TransactionsHandler.Instance.Initialize(clientId, responseObj.Data.FcmData);
 #endif
 
-                    var fetchContent = new Task[]
-                    {
-                        ContentFetcher.Instance.FetchContentByType("entities"),
-                        ContentFetcher.Instance.FetchContentByType("localization"),
-                        ContentFetcher.Instance.FetchContentByType("stattemplates"),
-                        ContentFetcher.Instance.FetchContentByType("offers"),
-                        ContentFetcher.Instance.FetchContentByType("positionedOffers"),
-                        ContentFetcher.Instance.FetchContentByType("abtests"),
-                        ContentFetcher.Instance.FetchContentByType("flows")
-                    };
 #if UNITY_ANDROID
                     if (!config.fetchUpdatesInRealTime)
                     {
                         Debug.Log("Fetching content for StrixSDK");
-                        await Task.WhenAll(fetchContent);
+                        await ContentFetcher.Instance.UpdateContentByTypes(new List<string>() {
+                            "entities",
+                            "localization",
+                            "stattemplates",
+                            "offers",
+                            "positionedOffers",
+                            "abtests",
+                            "flows"
+                        });
                     }
 #else
                     // Just do this in case we would like other platforms to automatically fetch content on initialization.
                     Debug.Log("Fetching content for StrixSDK");
-                    await Task.WhenAll(fetchContent);
+                    await ContentFetcher.Instance.UpdateContentByTypes(new List<string>() {
+                         "entities",
+                         "localization",
+                         "stattemplates",
+                         "offers",
+                         "positionedOffers",
+                         "abtests",
+                         "flows"
+                    });
 #endif
 
                     //// Initialize PlayerWarehouse elements for current player

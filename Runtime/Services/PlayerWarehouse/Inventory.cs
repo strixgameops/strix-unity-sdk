@@ -67,27 +67,9 @@ namespace StrixSDK
         /// Adds N amount of X items into player's inventory. Make sure to provide existing entityId. Returns true if operation was successful.
         /// </summary>
         /// <returns></returns>
-        public static async Task<bool> AddInventoryItem(string entityId, string amount)
-        {
-            return await Instance.I_AddInventoryItem(entityId, amount);
-        }
-
-        /// <summary>
-        /// Adds N amount of X items into player's inventory. Make sure to provide existing entityId. Returns true if operation was successful.
-        /// </summary>
-        /// <returns></returns>
         public static async Task<bool> AddInventoryItem(string entityId, int amount)
         {
-            return await Instance.I_AddInventoryItem(entityId, amount.ToString());
-        }
-
-        /// <summary>
-        /// Removes N amount of X items into player's inventory. Make sure to provide existing entityId. Returns true if operation was successful.
-        /// </summary>
-        /// <returns></returns>
-        public static async Task<bool> RemoveInventoryItem(string entityId, string amount)
-        {
-            return await Instance.I_RemoveInventoryItem(entityId, amount);
+            return await Instance.I_AddInventoryItem(entityId, amount);
         }
 
         /// <summary>
@@ -96,7 +78,7 @@ namespace StrixSDK
         /// <returns></returns>
         public static async Task<bool> RemoveInventoryItem(string entityId, int amount)
         {
-            return await Instance.I_RemoveInventoryItem(entityId, amount.ToString());
+            return await Instance.I_RemoveInventoryItem(entityId, amount);
         }
 
         #endregion Static methods
@@ -113,12 +95,12 @@ namespace StrixSDK
             return await WarehouseHelperMethods.GetInventoryItemAmount(entityId);
         }
 
-        private async Task<bool> I_AddInventoryItem(string entityId, string amount)
+        private async Task<bool> I_AddInventoryItem(string entityId, int amount)
         {
             return await WarehouseHelperMethods.AddInventoryItem(entityId, amount);
         }
 
-        private async Task<bool> I_RemoveInventoryItem(string entityId, string amount)
+        private async Task<bool> I_RemoveInventoryItem(string entityId, int amount)
         {
             return await WarehouseHelperMethods.RemoveInventoryItem(entityId, amount);
         }

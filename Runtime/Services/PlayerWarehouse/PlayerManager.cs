@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using StrixSDK.Runtime.Utils;
+using Codice.Utils;
 
 namespace StrixSDK.Runtime
 {
@@ -214,6 +215,10 @@ namespace StrixSDK.Runtime
                 Debug.LogError($"GetPlayerElement: No existing element template found by id '{elementId}'");
                 return null;
             }
+            if (PlayerManager.Instance._playerData.Elements == null)
+            {
+                return template.DefaultValue;
+            }
 
             PlayerDataElement element = PlayerManager.Instance._playerData.Elements.FirstOrDefault(e => e.Id == template.InternalId);
             if (element == null)
@@ -361,6 +366,8 @@ namespace StrixSDK.Runtime
                 PlayerManager.Instance._playerData.Elements.Add(element);
             }
 
+            FlowsManager.Instance.ExecuteFlow_StatChanged(template.InternalId, elementValue);
+
             PropagateChangesToBackend(template.InternalId, elementValue, API.SetElementValue);
 
             InvokeOfferTrigger(element);
@@ -421,6 +428,8 @@ namespace StrixSDK.Runtime
             {
                 PlayerManager.Instance._playerData.Elements.Add(element);
             }
+
+            FlowsManager.Instance.ExecuteFlow_StatChanged(template.InternalId, elementValue);
 
             PropagateChangesToBackend(template.InternalId, elementValue, API.AddElementValue);
 
@@ -483,6 +492,8 @@ namespace StrixSDK.Runtime
             {
                 PlayerManager.Instance._playerData.Elements.Add(element);
             }
+
+            FlowsManager.Instance.ExecuteFlow_StatChanged(template.InternalId, elementValue);
 
             PropagateChangesToBackend(template.InternalId, elementValue, API.SubtractElementValue);
 
@@ -640,52 +651,6 @@ namespace StrixSDK.Runtime
             }
         }
 
-        /// <summary>
-        /// Initially called from pubsub when player gets a message that he has entered or left some segment
-        /// </summary>
-        /// <param name="segmentId"></param>
-        /// <param name="changeType"></param>
-        private static void InvokeOfferTrigger(string segmentId, string changeType)
-        {
-            List<Offer> preProcessedOffers = OffersManager.Instance._offers
-                .Where(o => o.Triggers.Any(t => t.Subject == segmentId && t.Condition == changeType))
-                .ToList();
-            List<Offer> processedOffers = new List<Offer> { };
-
-            if (!preProcessedOffers.Any())
-            {
-                return;
-            }
-
-            foreach (var offer in preProcessedOffers)
-            {
-                bool shouldInvoke = false;
-                var trigger = offer.Triggers.FirstOrDefault(t => t.Subject == segmentId && t.Condition == changeType);
-                if (trigger != null)
-                {
-                    // Should be "true" by definition, since if we have method arguments like "segment123" & "onExit", it
-                    // already means that the player has left from the segment123 and all offers with such triggers should be invoken.
-                    shouldInvoke = true;
-                }
-
-                if (shouldInvoke)
-                {
-                    processedOffers.Add(offer);
-                }
-                else
-                {
-                    continue;
-                }
-
-                Debug.LogError($"InvokeOfferTrigger: Tried to call '{trigger.Condition}' trigger for an offer '{offer.Id}' but condition values are null or empty!");
-            }
-
-            if (processedOffers.Any())
-            {
-                OffersHelperMethods.InvokeTriggeredOffers(processedOffers);
-            }
-        }
-
         public static void PlayerSegmentChange(string segmentId, string changeType)
         {
             switch (changeType)
@@ -694,6 +659,7 @@ namespace StrixSDK.Runtime
                     {
                         if (PlayerManager.Instance._playerData.Segments.Contains(segmentId))
                         {
+                            FlowsManager.Instance.ExecuteRegularFlow("t_segmentExit", null);
                             PlayerManager.Instance._playerData.Segments.Remove(segmentId);
                             Debug.Log($"Changed (removed) player segment '{segmentId}'");
                         }
@@ -704,6 +670,7 @@ namespace StrixSDK.Runtime
                     {
                         if (!PlayerManager.Instance._playerData.Segments.Contains(segmentId))
                         {
+                            FlowsManager.Instance.ExecuteRegularFlow("t_segmentExit", null);
                             PlayerManager.Instance._playerData.Segments.Add(segmentId);
                             Debug.Log($"Changed (added) player segment '{segmentId}'");
                         }
@@ -842,7 +809,7 @@ namespace StrixSDK.Runtime
             return "0";
         }
 
-        public static async Task<bool> AddInventoryItem(string entityId, string amount)
+        public static async Task<bool> AddInventoryItem(string entityId, int amount)
         {
             Entity entity = Entities.GetEntityById(entityId);
             if (entity == null)
@@ -862,7 +829,7 @@ namespace StrixSDK.Runtime
                 {"secret", config.apiKey},
                 {"build", buildType},
                 {"nodeID", entity.NodeId},
-                {"amount", amount}
+                {"amount", amount.ToString()}
             };
             var response = await Client.Req(API.AddInventoryItem, body);
             var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
@@ -870,6 +837,7 @@ namespace StrixSDK.Runtime
             {
                 if ((bool)data["success"])
                 {
+                    FlowsManager.Instance.ExecuteFlow_ItemAdded(entity.NodeId, amount);
                     return true;
                 }
                 else
@@ -881,7 +849,7 @@ namespace StrixSDK.Runtime
             return false;
         }
 
-        public static async Task<bool> RemoveInventoryItem(string entityId, string amount)
+        public static async Task<bool> RemoveInventoryItem(string entityId, int amount)
         {
             Entity entity = Entities.GetEntityById(entityId);
             if (entity == null)
@@ -901,7 +869,7 @@ namespace StrixSDK.Runtime
                 {"secret", config.apiKey},
                 {"build", buildType},
                 {"nodeID", entity.NodeId},
-                {"amount", amount}
+                {"amount", amount.ToString()}
             };
             var response = await Client.Req(API.RemoveInventoryItem, body);
             var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
@@ -909,6 +877,7 @@ namespace StrixSDK.Runtime
             {
                 if ((bool)data["success"])
                 {
+                    FlowsManager.Instance.ExecuteFlow_ItemAdded(entity.NodeId, amount);
                     return true;
                 }
                 else

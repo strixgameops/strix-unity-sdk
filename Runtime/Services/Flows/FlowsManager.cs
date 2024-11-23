@@ -50,6 +50,16 @@ namespace StrixSDK.Runtime
             }
         }
 
+        private FlowExecutionPool flowExecutionPool;
+
+        private void Start()
+        {
+            // Initialize pool obj for flow execution
+            GameObject flowExecutionPoolObject = new GameObject("FlowExecutionPool");
+            flowExecutionPool = flowExecutionPoolObject.AddComponent<FlowExecutionPool>();
+            Debug.Log("FlowExecutionPool created successfully.");
+        }
+
         public void RefreshFlows()
         {
             List<Flow> flowsList = new List<Flow>();
@@ -133,8 +143,11 @@ namespace StrixSDK.Runtime
                 return;
             }
 
-            FlowExecution flowExecution = new FlowExecution();
-            flowExecution.ExecuteFlow(flow, null);
+            FlowExecution flowExecution = flowExecutionPool.GetObject();
+
+            flowExecution.ExecuteFlow(flow, null, null);
+
+            flowExecutionPool.ReturnObject(flowExecution);
         }
 
         public void ExecuteRegularFlow(string triggerId, Dictionary<string, object> contextualData)
@@ -145,8 +158,11 @@ namespace StrixSDK.Runtime
             {
                 foreach (var flow in flows)
                 {
-                    FlowExecution flowExecution = new FlowExecution();
-                    flowExecution.ExecuteFlow(flow, contextualData);
+                    FlowExecution flowExecution = flowExecutionPool.GetObject();
+
+                    flowExecution.ExecuteFlow(flow, contextualData, null);
+
+                    flowExecutionPool.ReturnObject(flowExecution);
                 }
             }
         }
@@ -167,12 +183,13 @@ namespace StrixSDK.Runtime
             {
                 foreach (var flow in flows)
                 {
-                    FlowExecution flowExecution = new FlowExecution
-                    {
-                        _offer = offerObject
-                    };
-                    flowExecution.ExecuteFlow(flow, null);
+                    FlowExecution flowExecution = flowExecutionPool.GetObject();
+
+                    flowExecution._offer = offerObject;
+                    flowExecution.ExecuteFlow(flow, null, null);
                     offerObject = flowExecution._offer;
+
+                    flowExecutionPool.ReturnObject(flowExecution);
                 }
             }
             return offerObject;
@@ -194,12 +211,13 @@ namespace StrixSDK.Runtime
             {
                 foreach (var flow in flows)
                 {
-                    FlowExecution flowExecution = new FlowExecution
-                    {
-                        _entityConfig = configObject
-                    };
-                    flowExecution.ExecuteFlow(flow, null);
+                    FlowExecution flowExecution = flowExecutionPool.GetObject();
+
+                    flowExecution._entityConfig = configObject;
+                    flowExecution.ExecuteFlow(flow, null, null);
                     configObject = flowExecution._entityConfig;
+
+                    flowExecutionPool.ReturnObject(flowExecution);
                 }
             }
             return configObject;
@@ -224,8 +242,11 @@ namespace StrixSDK.Runtime
             {
                 foreach (var flow in flows)
                 {
-                    FlowExecution flowExecution = new FlowExecution();
-                    flowExecution.ExecuteFlow(flow, contextualData);
+                    FlowExecution flowExecution = flowExecutionPool.GetObject();
+
+                    flowExecution.ExecuteFlow(flow, contextualData, amount);
+
+                    flowExecutionPool.ReturnObject(flowExecution);
                 }
             }
         }
@@ -249,13 +270,16 @@ namespace StrixSDK.Runtime
             {
                 foreach (var flow in flows)
                 {
-                    FlowExecution flowExecution = new FlowExecution();
-                    flowExecution.ExecuteFlow(flow, contextualData);
+                    FlowExecution flowExecution = flowExecutionPool.GetObject();
+
+                    flowExecution.ExecuteFlow(flow, contextualData, amount);
+
+                    flowExecutionPool.ReturnObject(flowExecution);
                 }
             }
         }
 
-        public void ExecuteFlow_StatChanged(string templateId)
+        public void ExecuteFlow_StatChanged(string templateId, object newValue)
         {
             List<Flow> flows = _flows.Where(flow =>
             flow.Nodes.Id == "t_statChanged"
@@ -271,10 +295,47 @@ namespace StrixSDK.Runtime
             {
                 foreach (var flow in flows)
                 {
-                    FlowExecution flowExecution = new FlowExecution();
-                    flowExecution.ExecuteFlow(flow, null);
+                    FlowExecution flowExecution = flowExecutionPool.GetObject();
+
+                    flowExecution.ExecuteFlow(flow, null, newValue);
+
+                    flowExecutionPool.ReturnObject(flowExecution);
                 }
             }
+        }
+    }
+
+    public class FlowExecutionPool : MonoBehaviour
+    {
+        private Queue<FlowExecution> pool = new Queue<FlowExecution>();
+        private int initialPoolSize = 10;
+
+        private void Awake()
+        {
+            // Make FlowExecution objects pool
+            for (int i = 0; i < initialPoolSize; i++)
+            {
+                pool.Enqueue(new FlowExecution());
+            }
+        }
+
+        // Get obj from pool or create new if none
+        public FlowExecution GetObject()
+        {
+            if (pool.Count > 0)
+            {
+                return pool.Dequeue(); // Get obj if exists
+            }
+            else
+            {
+                return new FlowExecution(); // If pool is empty, get a new one
+            }
+        }
+
+        // Get obj back to pool
+        public void ReturnObject(FlowExecution flowExecution)
+        {
+            pool.Enqueue(flowExecution);
         }
     }
 
@@ -302,7 +363,14 @@ namespace StrixSDK.Runtime
 
         private string flowSid = string.Empty;
 
-        public void ExecuteFlow(Flow flow, Dictionary<string, object> contextualData)
+        /// <summary>
+        /// Executes flow using it's objects and some other logic.
+        /// </summary>
+        /// <param name="flow">Flow objects</param>
+        /// <param name="contextualData">Data to append to local variables of the flow. For item added/removed this is an amount of items.</param>
+        /// <param name="triggerNodeResult">The data that will be passed as a previous result to the initial node. For example, when item added/removed, that can be an amount
+        /// of items added/removed, and this value will be a "return" from trigger node. Therefore, the second node in flow will be able to use it by param "Result of previous node".</param>
+        public void ExecuteFlow(Flow flow, Dictionary<string, object> contextualData, object triggerNodeResult)
         {
             flowSid = flow.Id;
 
@@ -313,7 +381,7 @@ namespace StrixSDK.Runtime
             Debug.Log("Populated variables: " + variablesValues.Count);
 
             // Execute flow starting from the root node
-            ExecuteNode(flow.Nodes, null);
+            ExecuteNode(flow.Nodes, triggerNodeResult);
         }
 
         private void PopulateVariables(Dictionary<string, object> contextualData)
@@ -825,9 +893,9 @@ namespace StrixSDK.Runtime
             object ASendEvent(Node node, object prevResult)
             {
                 List<NodeDataEventCustomData> customDataObj = null;
-                if (node.Data.ContainsKey("customData") && node.Data["customData"] is JObject customDataObject)
+                if (node.Data.ContainsKey("customData") && node.Data["customData"] is JArray customDataArray)
                 {
-                    customDataObj = customDataObject.ToObject<List<NodeDataEventCustomData>>();
+                    customDataObj = customDataArray.ToObject<List<NodeDataEventCustomData>>();
                 }
 
                 Dictionary<string, object> customData = new Dictionary<string, object>();

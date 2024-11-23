@@ -215,7 +215,7 @@ namespace StrixSDK.Runtime.Utils
                 }
                 else
                 {
-                    Debug.LogWarning($"Directory not found: {directoryPath}");
+                    Debug.Log($"No need to resolve cached media. Directory not found: {directoryPath}");
                 }
             }
             catch (Exception ex)

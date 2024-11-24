@@ -71,7 +71,7 @@ namespace StrixSDK
             {
                 offer = FlowsManager.Instance.ExecuteFlow_OfferShown(offer);
                 Instance.I_StartOfferExpiration(offerId);
-                _ = Analytics.SendOfferShownEvent(offer.Id, offer.Price.Value, analyticsEventCustomData);
+                _ = Analytics.SendOfferShownEvent(offer.InternalId, offer.Price.Value, analyticsEventCustomData);
             }
             return offer;
         }
@@ -91,7 +91,7 @@ namespace StrixSDK
                 {
                     Instance.I_StartOfferExpiration(offerId);
                 }
-                _ = Analytics.SendOfferShownEvent(offer.Id, offer.Price.Value, analyticsEventCustomData);
+                _ = Analytics.SendOfferShownEvent(offer.InternalId, offer.Price.Value, analyticsEventCustomData);
             }
             return offer;
         }

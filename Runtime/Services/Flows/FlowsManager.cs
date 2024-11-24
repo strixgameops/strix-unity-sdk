@@ -9,6 +9,7 @@ using UnityEngine;
 using StrixSDK.Runtime.Config;
 using StrixSDK.Runtime.APIClient;
 using StrixSDK.Runtime.Models;
+using System.Data;
 
 namespace StrixSDK.Runtime
 {
@@ -424,27 +425,35 @@ namespace StrixSDK.Runtime
 
         private object TryGetDataVariable(object value, bool isCustom, object previousValue, string valueType)
         {
-            if (isCustom)
+            try
             {
-                return value;
-            }
-            else
-            {
-                if (value.ToString() == "previousResult")
+                if (isCustom)
                 {
-                    return previousValue;
+                    return value;
                 }
                 else
                 {
-                    if (valueType == "variable")
+                    if (value.ToString() == "previousResult")
                     {
-                        return localVars.ContainsKey(value.ToString()) ? localVars[value.ToString()] : null;
+                        return previousValue;
                     }
                     else
                     {
-                        return GetVariableValue(value.ToString());
+                        if (valueType == "variable")
+                        {
+                            return localVars.ContainsKey(value.ToString()) ? localVars[value.ToString()] : null;
+                        }
+                        else
+                        {
+                            return GetVariableValue(value.ToString());
+                        }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(ex);
+                throw ex;
             }
         }
 
@@ -928,11 +937,17 @@ namespace StrixSDK.Runtime
                 }
                 var var1 = TryGetDataVariable(value.Value, value.IsCustom, prevResult, value.Type);
 
-                WarehouseHelperMethods.SetPlayerElementValue((string)node.Data["template"], var1);
+                NodeDataValue templateInternalId = null;
+                if (node.Data.ContainsKey("template") && node.Data["template"] is JObject templateInternalIdObject)
+                {
+                    templateInternalId = templateInternalIdObject.ToObject<NodeDataValue>();
+                }
+                ElementTemplate template = WarehouseHelperMethods.GetElementByInternalId((string)templateInternalId.Value);
+                WarehouseHelperMethods.SetPlayerElementValue(template.Id, var1);
 
-                SetVariableValue((string)node.Data["template"], var1);
+                SetVariableValue(template.Id, var1);
 
-                var result = true;
+                var result = var1;
                 return result;
             }
 
@@ -978,11 +993,18 @@ namespace StrixSDK.Runtime
                 }
                 var var1 = TryGetDataVariable(value.Value, value.IsCustom, prevResult, value.Type);
 
-                WarehouseHelperMethods.SubtractPlayerElementValue((string)node.Data["template"], var1);
+                NodeDataValue templateInternalId = null;
+                if (node.Data.ContainsKey("template") && node.Data["template"] is JObject templateInternalIdObject)
+                {
+                    templateInternalId = templateInternalIdObject.ToObject<NodeDataValue>();
+                }
 
-                SetVariableValue((string)node.Data["template"], var1);
+                ElementTemplate template = WarehouseHelperMethods.GetElementByInternalId((string)templateInternalId.Value);
+                WarehouseHelperMethods.SubtractPlayerElementValue(template.Id, var1);
 
-                var result = true;
+                SetVariableValue(template.Id, var1);
+
+                var result = var1;
                 return result;
             }
 
@@ -996,11 +1018,18 @@ namespace StrixSDK.Runtime
                 }
                 var var1 = TryGetDataVariable(value.Value, value.IsCustom, prevResult, value.Type);
 
-                WarehouseHelperMethods.AddPlayerElementValue((string)node.Data["template"], var1);
+                NodeDataValue templateInternalId = null;
+                if (node.Data.ContainsKey("template") && node.Data["template"] is JObject templateInternalIdObject)
+                {
+                    templateInternalId = templateInternalIdObject.ToObject<NodeDataValue>();
+                }
 
-                SetVariableValue((string)node.Data["template"], var1);
+                ElementTemplate template = WarehouseHelperMethods.GetElementByInternalId((string)templateInternalId.Value);
+                WarehouseHelperMethods.AddPlayerElementValue(template.Id, var1);
 
-                var result = true;
+                SetVariableValue(template.Id, var1);
+
+                var result = var1;
                 return result;
             }
 

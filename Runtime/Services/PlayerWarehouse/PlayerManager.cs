@@ -8,7 +8,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using StrixSDK.Runtime.Utils;
-using Codice.Utils;
 
 namespace StrixSDK.Runtime
 {
@@ -99,6 +98,11 @@ namespace StrixSDK.Runtime
 
     public static class WarehouseHelperMethods
     {
+        public static ElementTemplate GetElementByInternalId(string internalId)
+        {
+            return PlayerManager.Instance._templates.FirstOrDefault(t => t.InternalId == internalId);
+        }
+
         public static void RemoveSegmentFromPlayer(string segmentId)
         {
             if (PlayerManager.Instance._playerData.Segments.Contains(segmentId))
@@ -132,6 +136,38 @@ namespace StrixSDK.Runtime
                     return value is bool;
             }
             return false;
+        }
+
+        private static object TryParseElementValue(object value, string templateType)
+        {
+            try
+            {
+                switch (templateType)
+                {
+                    case "float":
+                        return value is string ? float.TryParse((string)value, out var floatResult) ? (object)floatResult : null : (value is float ? value : null);
+
+                    case "integer":
+                        return value is string ? int.TryParse((string)value, out var intResult) ? (object)intResult : null : (value is int ? value : null);
+
+                    case "string":
+                        return value?.ToString();
+
+                    case "bool":
+                        if (value is string strValue)
+                        {
+                            return bool.TryParse(strValue.ToLower(), out var boolResult) ? (object)boolResult : null;
+                        }
+                        return value is bool ? value : null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(ex);
+                return null;
+            }
+
+            return null;
         }
 
         private static object ClampElementValue(object value, ElementTemplate template)
@@ -339,11 +375,24 @@ namespace StrixSDK.Runtime
             var check = CheckElementFormatType(elementValue, template.Type);
             if (!check)
             {
-                Debug.LogError($"SetPlayerElementValue: Wrong data type provided. Expected '{template.Type}' for element '{elementId}', got '{elementValue.GetType()}'");
-                return null;
+                // Try to parse value by ourselves for some cases. For example, parse string "true" to boolean.
+                var parsedValue = TryParseElementValue(elementValue, template.Type);
+                if (parsedValue == null)
+                {
+                    Debug.LogError($"SetPlayerElementValue: Wrong data type provided. Expected '{template.Type}' for element '{elementId}', got '{elementValue.GetType()}'");
+                    return null;
+                }
+                else
+                {
+                    elementValue = parsedValue;
+                }
             }
 
-            int elementIndex = PlayerManager.Instance._playerData.Elements.FindIndex(e => e.Id == template.InternalId);
+            int elementIndex = -1;
+            if (PlayerManager.Instance._playerData.Elements != null)
+            {
+                elementIndex = PlayerManager.Instance._playerData.Elements.FindIndex(e => e.Id == template.InternalId);
+            }
             PlayerDataElement element = null;
             if (elementIndex != -1)
             {
@@ -390,7 +439,11 @@ namespace StrixSDK.Runtime
                 return null;
             }
 
-            int elementIndex = PlayerManager.Instance._playerData.Elements.FindIndex(e => e.Id == template.InternalId);
+            int elementIndex = -1;
+            if (PlayerManager.Instance._playerData.Elements != null)
+            {
+                elementIndex = PlayerManager.Instance._playerData.Elements.FindIndex(e => e.Id == template.InternalId);
+            }
             PlayerDataElement element = null;
             if (elementIndex != -1)
             {
@@ -453,7 +506,11 @@ namespace StrixSDK.Runtime
                 return null;
             }
 
-            int elementIndex = PlayerManager.Instance._playerData.Elements.FindIndex(e => e.Id == template.InternalId);
+            int elementIndex = -1;
+            if (PlayerManager.Instance._playerData.Elements != null)
+            {
+                elementIndex = PlayerManager.Instance._playerData.Elements.FindIndex(e => e.Id == template.InternalId);
+            }
             PlayerDataElement element = null;
             if (elementIndex != -1)
             {

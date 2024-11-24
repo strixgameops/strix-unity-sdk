@@ -6,19 +6,19 @@ namespace StrixSDK
     public class PlayerData
     {
         [JsonProperty("segments")]
-        public List<string> Segments { get; set; }
+        public List<string> Segments { get; set; } = new List<string>();
 
         [JsonProperty("elements")]
-        public List<PlayerDataElement> Elements { get; set; }
+        public List<PlayerDataElement> Elements { get; set; } = new List<PlayerDataElement>();
 
         [JsonProperty("abtests")]
-        public List<string> ABTests { get; set; }
+        public List<string> ABTests { get; set; } = new List<string>();
 
         [JsonProperty("inventory")]
-        public List<string> Inventory { get; set; } // Not implemented
+        public List<string> Inventory { get; set; } = new List<string>();
 
         [JsonProperty("offers")]
-        public List<PlayerOfferData> Offers { get; set; }
+        public List<PlayerOfferData> Offers { get; set; } = new List<PlayerOfferData>();
     }
 
     public class PlayerOfferData // Used only for real-money IAPs

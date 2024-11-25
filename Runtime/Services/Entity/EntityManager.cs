@@ -116,6 +116,7 @@ namespace StrixSDK.Runtime
                     return result;
 
                 case "boolean":
+                case "bool":
                     // trying to output boolean
                     if (segmentValue == "false")
                     {

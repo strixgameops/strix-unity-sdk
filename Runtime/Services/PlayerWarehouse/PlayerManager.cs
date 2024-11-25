@@ -98,7 +98,7 @@ namespace StrixSDK.Runtime
 
     public static class WarehouseHelperMethods
     {
-        public static ElementTemplate GetElementByInternalId(string internalId)
+        public static ElementTemplate GetTemplateByInternalId(string internalId)
         {
             return PlayerManager.Instance._templates.FirstOrDefault(t => t.InternalId == internalId);
         }
@@ -211,16 +211,21 @@ namespace StrixSDK.Runtime
             switch (template.Type)
             {
                 case "float":
-                    return Convert.ToDouble(value);
+                    return value is string ? float.TryParse((string)value, out var floatResult) ? (object)floatResult : null : (value is float ? value : null);
 
                 case "integer":
-                    return Convert.ToDecimal(value);
+                    return value is string ? int.TryParse((string)value, out var intResult) ? (object)intResult : null : (value is int ? value : null);
 
                 case "string":
                     return value;
 
                 case "bool":
-                    return (string)value == "True";
+                case "boolean":
+                    if (value is string strValue)
+                    {
+                        return bool.TryParse(strValue.ToLower(), out var boolResult) ? (object)boolResult : null;
+                    }
+                    return value is bool ? value : null;
             }
             return value;
         }
@@ -249,6 +254,27 @@ namespace StrixSDK.Runtime
             if (template == null)
             {
                 Debug.LogError($"GetPlayerElement: No existing element template found by id '{elementId}'");
+                return null;
+            }
+            if (PlayerManager.Instance._playerData.Elements == null)
+            {
+                return template.DefaultValue;
+            }
+
+            PlayerDataElement element = PlayerManager.Instance._playerData.Elements.FirstOrDefault(e => e.Id == template.InternalId);
+            if (element == null)
+            {
+                return template.DefaultValue;
+            }
+            return element.Value;
+        }
+
+        public static object GetPlayerElementValueByInternalId(string elementInternalId)
+        {
+            ElementTemplate template = PlayerManager.Instance._templates.FirstOrDefault(t => t.InternalId == elementInternalId);
+            if (template == null)
+            {
+                Debug.LogError($"GetPlayerElementValueByInternalId: No existing element template found by id '{elementInternalId}'");
                 return null;
             }
             if (PlayerManager.Instance._playerData.Elements == null)
@@ -429,14 +455,23 @@ namespace StrixSDK.Runtime
             ElementTemplate template = PlayerManager.Instance._templates.FirstOrDefault(t => t.Id == elementId);
             if (template == null)
             {
-                Debug.LogError($"SetPlayerElementValue: No existing element template found by id '{elementId}'");
+                Debug.LogError($"AddPlayerElementValue: No existing element template found by id '{elementId}'");
                 return null;
             }
             var check = CheckElementFormatType(elementValue, template.Type);
             if (!check)
             {
-                Debug.LogError($"SetPlayerElementValue: Wrong data type provided. Expected '{template.Type}' for element '{elementId}', got '{elementValue.GetType()}'");
-                return null;
+                // Try to parse value by ourselves for some cases. For example, parse string "true" to boolean.
+                var parsedValue = TryParseElementValue(elementValue, template.Type);
+                if (parsedValue == null)
+                {
+                    Debug.LogError($"AddPlayerElementValue: Wrong data type provided. Expected '{template.Type}' for element '{elementId}', got '{elementValue.GetType()}'");
+                    return null;
+                }
+                else
+                {
+                    elementValue = parsedValue;
+                }
             }
 
             int elementIndex = -1;
@@ -454,22 +489,22 @@ namespace StrixSDK.Runtime
                 case "float":
                     if (element == null)
                     {
-                        element = new PlayerDataElement { Id = template.InternalId, Value = ClampElementValue((float)GetCorrectDefaultValue(template) + (float)elementValue, template) };
+                        element = new PlayerDataElement { Id = template.InternalId, Value = ClampElementValue(Convert.ToDouble(GetCorrectDefaultValue(template)) + Convert.ToDouble(elementValue), template) };
                     }
                     else
                     {
-                        element.Value = ClampElementValue((float)element.Value + (float)elementValue, template);
+                        element.Value = ClampElementValue(Convert.ToDouble(element.Value) + Convert.ToDouble(elementValue), template);
                     }
                     break;
 
                 case "integer":
                     if (element == null)
                     {
-                        element = new PlayerDataElement { Id = template.InternalId, Value = ClampElementValue((int)GetCorrectDefaultValue(template) + (int)elementValue, template) };
+                        element = new PlayerDataElement { Id = template.InternalId, Value = ClampElementValue(Convert.ToInt64(GetCorrectDefaultValue(template)) + Convert.ToInt64(elementValue), template) };
                     }
                     else
                     {
-                        element.Value = ClampElementValue((int)element.Value + (int)elementValue, template);
+                        element.Value = ClampElementValue(Convert.ToInt64(element.Value) + Convert.ToInt64(elementValue), template);
                     }
                     break;
             }
@@ -496,14 +531,23 @@ namespace StrixSDK.Runtime
             ElementTemplate template = PlayerManager.Instance._templates.FirstOrDefault(t => t.Id == elementId);
             if (template == null)
             {
-                Debug.LogError($"SetPlayerElementValue: No existing element template found by id '{elementId}'");
+                Debug.LogError($"SubtractPlayerElementValue: No existing element template found by id '{elementId}'");
                 return null;
             }
             var check = CheckElementFormatType(elementValue, template.Type);
             if (!check)
             {
-                Debug.LogError($"SetPlayerElementValue: Wrong data type provided. Expected '{template.Type}' for element '{elementId}', got '{elementValue.GetType()}'");
-                return null;
+                // Try to parse value by ourselves for some cases. For example, parse string "true" to boolean.
+                var parsedValue = TryParseElementValue(elementValue, template.Type);
+                if (parsedValue == null)
+                {
+                    Debug.LogError($"SubtractPlayerElementValue: Wrong data type provided. Expected '{template.Type}' for element '{elementId}', got '{elementValue.GetType()}'");
+                    return null;
+                }
+                else
+                {
+                    elementValue = parsedValue;
+                }
             }
 
             int elementIndex = -1;
@@ -522,22 +566,22 @@ namespace StrixSDK.Runtime
                 case "float":
                     if (element == null)
                     {
-                        element = new PlayerDataElement { Id = template.InternalId, Value = ClampElementValue((float)GetCorrectDefaultValue(template) - (float)elementValue, template) };
+                        element = new PlayerDataElement { Id = template.InternalId, Value = ClampElementValue((double)GetCorrectDefaultValue(template) - (double)elementValue, template) };
                     }
                     else
                     {
-                        element.Value = ClampElementValue((float)element.Value - (float)elementValue, template);
+                        element.Value = ClampElementValue((double)element.Value - (double)elementValue, template);
                     }
                     break;
 
                 case "integer":
                     if (element == null)
                     {
-                        element = new PlayerDataElement { Id = template.InternalId, Value = ClampElementValue((int)GetCorrectDefaultValue(template) - (int)elementValue, template) };
+                        element = new PlayerDataElement { Id = template.InternalId, Value = ClampElementValue((long)GetCorrectDefaultValue(template) - (long)elementValue, template) };
                     }
                     else
                     {
-                        element.Value = ClampElementValue((int)element.Value - (int)elementValue, template);
+                        element.Value = ClampElementValue((long)element.Value - (long)elementValue, template);
                     }
                     break;
             }

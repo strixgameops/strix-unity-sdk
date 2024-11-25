@@ -10,6 +10,7 @@ using StrixSDK.Runtime.Config;
 using StrixSDK.Runtime.APIClient;
 using StrixSDK.Runtime.Models;
 using System.Data;
+using UnityEngine.Localization.SmartFormat.PersistentVariables;
 
 namespace StrixSDK.Runtime
 {
@@ -336,6 +337,7 @@ namespace StrixSDK.Runtime
         // Get obj back to pool
         public void ReturnObject(FlowExecution flowExecution)
         {
+            flowExecution.ClearAfterPooling();
             pool.Enqueue(flowExecution);
         }
     }
@@ -385,6 +387,16 @@ namespace StrixSDK.Runtime
             ExecuteNode(flow.Nodes, triggerNodeResult);
         }
 
+        public void ClearAfterPooling()
+        {
+            localVars = new Dictionary<string, object>();
+            variablesValues = new List<VariableValue>();
+            _entityConfig = null;
+            _offer = null;
+            flowIsStopped = false;
+            flowSid = string.Empty;
+        }
+
         private void PopulateVariables(Dictionary<string, object> contextualData)
         {
             if (PlayerManager.Instance._templates.Length > 0)
@@ -413,6 +425,24 @@ namespace StrixSDK.Runtime
                     {
                         variablesValues.Add(new VariableValue { Id = prop.Key, Value = prop.Value });
                     }
+                }
+            }
+        }
+
+        private void UpdateTemplateVariableAfterElementChange(string templateId)
+        {
+            var playerValue = WarehouseHelperMethods.GetPlayerElementValueByInternalId(templateId);
+            if (playerValue != null)
+            {
+                var existingVariable = variablesValues.FirstOrDefault(v => v.Id == templateId);
+
+                if (existingVariable != null)
+                {
+                    existingVariable.Value = playerValue;
+                }
+                else
+                {
+                    variablesValues.Add(new VariableValue { Id = templateId, Value = playerValue });
                 }
             }
         }
@@ -470,6 +500,7 @@ namespace StrixSDK.Runtime
                     return Convert.ToDouble(variable);
 
                 case "boolean":
+                case "bool":
                     return string.Equals(variable.ToString(), "true", StringComparison.OrdinalIgnoreCase);
 
                 case "string":
@@ -802,7 +833,7 @@ namespace StrixSDK.Runtime
 
                 Debug.Log($"Ceiling value {value1.Value.ToString()} ({value1.Type})");
 
-                var var1 = (float)TryGetDataVariable(value1.Value, value1.IsCustom, prevResult, value1.Type);
+                var var1 = (double)TryGetDataVariable(value1.Value, value1.IsCustom, prevResult, value1.Type);
 
                 var result = Math.Ceiling(var1);
 
@@ -820,7 +851,7 @@ namespace StrixSDK.Runtime
 
                 Debug.Log($"Rounding value {node.Data["value"].ToString()} ({node.Data["valueType"]})");
 
-                var var1 = (float)TryGetDataVariable(value1.Value, value1.IsCustom, prevResult, value1.Type);
+                var var1 = (double)TryGetDataVariable(value1.Value, value1.IsCustom, prevResult, value1.Type);
 
                 var result = Math.Round(var1);
 
@@ -911,6 +942,7 @@ namespace StrixSDK.Runtime
                 foreach (var item in customDataObj)
                 {
                     object var1 = TryGetDataVariable(item.Value.Value, item.Value.IsCustom, prevResult, item.Value.Type);
+                    var1 = TryChangeDataType(var1, item.Value.Type);
                     customData.Add(item.Field, var1);
                 }
                 _ = Analytics.SendCustomEvent((string)node.Data["eventID"], customData);
@@ -942,10 +974,11 @@ namespace StrixSDK.Runtime
                 {
                     templateInternalId = templateInternalIdObject.ToObject<NodeDataValue>();
                 }
-                ElementTemplate template = WarehouseHelperMethods.GetElementByInternalId((string)templateInternalId.Value);
+                ElementTemplate template = WarehouseHelperMethods.GetTemplateByInternalId((string)templateInternalId.Value);
                 WarehouseHelperMethods.SetPlayerElementValue(template.Id, var1);
 
                 SetVariableValue(template.Id, var1);
+                UpdateTemplateVariableAfterElementChange((string)templateInternalId.Value);
 
                 var result = var1;
                 return result;
@@ -999,10 +1032,11 @@ namespace StrixSDK.Runtime
                     templateInternalId = templateInternalIdObject.ToObject<NodeDataValue>();
                 }
 
-                ElementTemplate template = WarehouseHelperMethods.GetElementByInternalId((string)templateInternalId.Value);
+                ElementTemplate template = WarehouseHelperMethods.GetTemplateByInternalId((string)templateInternalId.Value);
                 WarehouseHelperMethods.SubtractPlayerElementValue(template.Id, var1);
 
                 SetVariableValue(template.Id, var1);
+                UpdateTemplateVariableAfterElementChange((string)templateInternalId.Value);
 
                 var result = var1;
                 return result;
@@ -1024,10 +1058,11 @@ namespace StrixSDK.Runtime
                     templateInternalId = templateInternalIdObject.ToObject<NodeDataValue>();
                 }
 
-                ElementTemplate template = WarehouseHelperMethods.GetElementByInternalId((string)templateInternalId.Value);
+                ElementTemplate template = WarehouseHelperMethods.GetTemplateByInternalId((string)templateInternalId.Value);
                 WarehouseHelperMethods.AddPlayerElementValue(template.Id, var1);
 
                 SetVariableValue(template.Id, var1);
+                UpdateTemplateVariableAfterElementChange((string)templateInternalId.Value);
 
                 var result = var1;
                 return result;
@@ -1239,7 +1274,7 @@ namespace StrixSDK.Runtime
                 bool result = true;
 
                 List<NodeDataConditions> conditions = null;
-                if (node.Data.ContainsKey("conditions") && node.Data["conditions"] is JObject conditionsObject)
+                if (node.Data.ContainsKey("conditions") && node.Data["conditions"] is JArray conditionsObject)
                 {
                     conditions = conditionsObject.ToObject<List<NodeDataConditions>>();
                 }

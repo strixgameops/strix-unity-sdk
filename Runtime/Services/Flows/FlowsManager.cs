@@ -11,6 +11,8 @@ using StrixSDK.Runtime.APIClient;
 using StrixSDK.Runtime.Models;
 using System.Data;
 using UnityEngine.Localization.SmartFormat.PersistentVariables;
+using System.Globalization;
+using System.Threading;
 
 namespace StrixSDK.Runtime
 {
@@ -483,7 +485,7 @@ namespace StrixSDK.Runtime
             catch (Exception ex)
             {
                 Debug.LogError(ex);
-                throw ex;
+                throw;
             }
         }
 
@@ -497,7 +499,7 @@ namespace StrixSDK.Runtime
             switch (targetType)
             {
                 case "number":
-                    return Convert.ToDouble(variable);
+                    return ConvertToSingle((string)variable);
 
                 case "boolean":
                 case "bool":
@@ -522,6 +524,72 @@ namespace StrixSDK.Runtime
             {
                 variablesValues.Add(new VariableValue { Id = field, Value = value });
             }
+        }
+
+        private float ConvertToSingle(string s)
+        {
+            char systemSeparator = Thread.CurrentThread.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
+            float result = 0;
+            try
+            {
+                if (s != null)
+                    if (!s.Contains(","))
+                        result = float.Parse(s, CultureInfo.InvariantCulture);
+                    else
+                        result = Convert.ToSingle(s.Replace(".", systemSeparator.ToString()).Replace(",", systemSeparator.ToString()));
+            }
+            catch (Exception e)
+            {
+                try
+                {
+                    result = Convert.ToSingle(s);
+                }
+                catch
+                {
+                    try
+                    {
+                        result = Convert.ToSingle(s.Replace(",", ";").Replace(".", ",").Replace(";", "."));
+                    }
+                    catch
+                    {
+                        throw new Exception("Wrong string-to-single format");
+                    }
+                }
+            }
+            return result;
+        }
+
+        private double ConvertToDouble(string s)
+        {
+            char systemSeparator = Thread.CurrentThread.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
+            double result = 0;
+            try
+            {
+                if (s != null)
+                    if (!s.Contains(","))
+                        result = double.Parse(s, CultureInfo.InvariantCulture);
+                    else
+                        result = Convert.ToDouble(s.Replace(".", systemSeparator.ToString()).Replace(",", systemSeparator.ToString()));
+            }
+            catch (Exception e)
+            {
+                try
+                {
+                    result = Convert.ToDouble(s);
+                }
+                catch
+                {
+                    try
+                    {
+                        result = Convert.ToDouble(s.Replace(",", ";").Replace(".", ",").Replace(";", "."));
+                    }
+                    catch
+                    {
+                        throw new Exception("Wrong string-to-double format");
+                    }
+                }
+            }
+            return result;
         }
 
         private delegate object NodeFunction(Node node, object prevResult);
@@ -737,353 +805,537 @@ namespace StrixSDK.Runtime
             // i_return
             object IReturn(Node node, object prevResult)
             {
-                flowIsStopped = true;
-                var result = true;
-                return result;
+                try
+                {
+                    flowIsStopped = true;
+                    var result = true;
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
             }
 
             // t_custom
             object TCustom(Node node, object prevResult)
             {
-                var result = true;
-                return result;
+                try
+                {
+                    var result = true;
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
             }
 
             // t_configParamRetrieved
             object TConfigParamRetrieved(Node node, object prevResult)
             {
-                Debug.Log($"Trigger config \"{_entityConfig.Id}\"");
-                var result = true;
-                return result;
+                try
+                {
+                    Debug.Log($"Trigger config \"{_entityConfig.Id}\"");
+                    var result = true;
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
             }
 
             // t_itemAdded
             object TItemAdded(Node node, object prevResult)
             {
-                var result = prevResult;
-                return result;
+                try
+                {
+                    var result = prevResult;
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
             }
 
             // t_itemRemoved
             object TItemRemoved(Node node, object prevResult)
             {
-                var result = prevResult;
-                return result;
+                try
+                {
+                    var result = prevResult;
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
             }
 
             // t_offerBought
             object TOfferBought(Node node, object prevResult)
             {
-                Offer offer = OffersManager.Instance._offers.First(o => o.InternalId == (string)node.Data["offerID"]);
-                Debug.Log($"Trigger offer: {offer.Name}");
+                try
+                {
+                    Offer offer = OffersManager.Instance._offers.First(o => o.InternalId == (string)node.Data["offerID"]);
+                    Debug.Log($"Trigger offer: {offer.Name}");
 
-                variablesValues.Add(new VariableValue { Id = "offerIcon", Value = offer.Icon });
-                variablesValues.Add(new VariableValue { Id = "offerPrice", Value = offer.Price.Value });
-                variablesValues.Add(new VariableValue { Id = "offerDiscount", Value = offer.Pricing.Discount });
+                    variablesValues.Add(new VariableValue { Id = "offerIcon", Value = offer.Icon });
+                    variablesValues.Add(new VariableValue { Id = "offerPrice", Value = offer.Price.Value });
+                    variablesValues.Add(new VariableValue { Id = "offerDiscount", Value = offer.Pricing.Discount });
 
-                var result = true;
+                    var result = true;
 
-                return result;
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
             }
 
             // t_segmentExit
             object TSegmentExit(Node node, object prevResult)
             {
-                var result = prevResult;
-                return result;
+                try
+                {
+                    var result = prevResult;
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
             }
 
             // t_segmentJoin
             object TSegmentJoin(Node node, object prevResult)
             {
-                var result = prevResult;
-                return result;
+                try
+                {
+                    var result = prevResult;
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
             }
 
             // t_statChanged
             object TStatChanged(Node node, object prevResult)
             {
-                var result = prevResult;
-                return result;
+                try
+                {
+                    var result = prevResult;
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
             }
 
             // t_offerShow
             object TOfferShow(Node node, object prevResult)
             {
-                Offer offer = OffersManager.Instance._offers.First(o => o.InternalId == (string)node.Data["offerID"]);
-                Debug.Log($"Trigger offer: {offer.Name}");
+                try
+                {
+                    Offer offer = OffersManager.Instance._offers.First(o => o.InternalId == (string)node.Data["offerID"]);
+                    Debug.Log($"Trigger offer: {offer.Name}");
 
-                variablesValues.Add(new VariableValue { Id = "offerIcon", Value = offer.Icon });
-                variablesValues.Add(new VariableValue { Id = "offerPrice", Value = offer.Price.Value });
-                variablesValues.Add(new VariableValue { Id = "offerDiscount", Value = offer.Pricing.Discount });
+                    variablesValues.Add(new VariableValue { Id = "offerIcon", Value = offer.Icon });
+                    variablesValues.Add(new VariableValue { Id = "offerPrice", Value = offer.Price.Value });
+                    variablesValues.Add(new VariableValue { Id = "offerDiscount", Value = offer.Pricing.Discount });
 
-                var result = true;
+                    var result = true;
 
-                return result;
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
             }
 
             // n_ceil
             object NCeil(Node node, object prevResult)
             {
-                NodeDataValue value1 = null;
-                if (node.Data.ContainsKey("value1") && node.Data["value1"] is JObject value1Object)
+                try
                 {
-                    value1 = value1Object.ToObject<NodeDataValue>();
+                    NodeDataValue value = null;
+                    if (node.Data.ContainsKey("value") && node.Data["value"] is JObject valueObject)
+                    {
+                        value = valueObject.ToObject<NodeDataValue>();
+                    }
+
+                    Debug.Log($"Ceiling value {value.Value.ToString()} ({value.Type})");
+
+                    var var1 = TryGetDataVariable(value.Value, value.IsCustom, prevResult, value.Type);
+                    var1 = ConvertToDouble((string)var1);
+                    var result = Math.Ceiling((double)var1);
+
+                    return result;
                 }
-
-                Debug.Log($"Ceiling value {value1.Value.ToString()} ({value1.Type})");
-
-                var var1 = (double)TryGetDataVariable(value1.Value, value1.IsCustom, prevResult, value1.Type);
-
-                var result = Math.Ceiling(var1);
-
-                return result;
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
             }
 
             // n_round
             object NRound(Node node, object prevResult)
             {
-                NodeDataValue value1 = null;
-                if (node.Data.ContainsKey("value1") && node.Data["value1"] is JObject value1Object)
+                try
                 {
-                    value1 = value1Object.ToObject<NodeDataValue>();
+                    NodeDataValue value1 = null;
+                    if (node.Data.ContainsKey("value1") && node.Data["value1"] is JObject value1Object)
+                    {
+                        value1 = value1Object.ToObject<NodeDataValue>();
+                    }
+
+                    Debug.Log($"Rounding value {node.Data["value"].ToString()} ({node.Data["valueType"]})");
+
+                    var var1 = TryGetDataVariable(value1.Value, value1.IsCustom, prevResult, value1.Type);
+                    var1 = ConvertToDouble((string)var1);
+                    var result = Math.Round((double)var1);
+
+                    return result;
                 }
-
-                Debug.Log($"Rounding value {node.Data["value"].ToString()} ({node.Data["valueType"]})");
-
-                var var1 = (double)TryGetDataVariable(value1.Value, value1.IsCustom, prevResult, value1.Type);
-
-                var result = Math.Round(var1);
-
-                return result;
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
             }
 
             // n_getRandomNumber
             object NGetRandomNumber(Node node, object prevResult)
             {
-                NodeDataValue valueMin = null;
-                if (node.Data.ContainsKey("valueMin") && node.Data["valueMin"] is JObject valueMinObject)
+                try
                 {
-                    valueMin = valueMinObject.ToObject<NodeDataValue>();
+                    NodeDataValue valueMin = null;
+                    if (node.Data.ContainsKey("valueMin") && node.Data["valueMin"] is JObject valueMinObject)
+                    {
+                        valueMin = valueMinObject.ToObject<NodeDataValue>();
+                    }
+                    NodeDataValue valueMax = null;
+                    if (node.Data.ContainsKey("valueMax") && node.Data["valueMax"] is JObject valueMaxObject)
+                    {
+                        valueMax = valueMaxObject.ToObject<NodeDataValue>();
+                    }
+                    Debug.Log($"Getting random value between {valueMin.Value} ({valueMin.Type}) and {valueMax.Value} ({valueMax.Type})");
+
+                    var varMin = TryGetDataVariable(valueMin.Value, valueMin.IsCustom, prevResult, valueMin.Type);
+                    varMin = ConvertToSingle((string)varMin);
+                    var varMax = TryGetDataVariable(valueMax.Value, valueMax.IsCustom, prevResult, valueMax.Type);
+                    varMax = ConvertToSingle((string)varMax);
+
+                    var result = UnityEngine.Random.Range((float)varMin, (float)varMax);
+
+                    return result;
                 }
-                NodeDataValue valueMax = null;
-                if (node.Data.ContainsKey("valueMax") && node.Data["valueMax"] is JObject valueMaxObject)
+                catch (Exception ex)
                 {
-                    valueMax = valueMaxObject.ToObject<NodeDataValue>();
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
                 }
-                Debug.Log($"Getting random value between {valueMin.Value} ({valueMin.Type}) and {valueMax.Value} ({valueMax.Type})");
-
-                var varMin = (float)TryGetDataVariable(valueMin.Value, valueMin.IsCustom, prevResult, valueMin.Type);
-                var varMax = (float)TryGetDataVariable(valueMax.Value, valueMax.IsCustom, prevResult, valueMax.Type);
-
-                var result = UnityEngine.Random.Range(varMin, varMax);
-
-                return result;
             }
 
             // n_floor
             object NFloor(Node node, object prevResult)
             {
-                NodeDataValue value = null;
-                if (node.Data.ContainsKey("value") && node.Data["value"] is JObject valueObject)
+                try
                 {
-                    value = valueObject.ToObject<NodeDataValue>();
+                    NodeDataValue value = null;
+                    if (node.Data.ContainsKey("value") && node.Data["value"] is JObject valueObject)
+                    {
+                        value = valueObject.ToObject<NodeDataValue>();
+                    }
+
+                    Debug.Log($"Flooring value {value.Value} ({value.Type})");
+
+                    var var1 = TryGetDataVariable(value.Value, value.IsCustom, prevResult, value.Type);
+                    var1 = ConvertToSingle((string)var1);
+
+                    var result = Mathf.FloorToInt((float)var1);
+
+                    return result;
                 }
-
-                Debug.Log($"Flooring value {value.Value} ({value.Type})");
-
-                var var1 = (float)TryGetDataVariable(value.Value, value.IsCustom, prevResult, value.Type);
-
-                var result = Mathf.FloorToInt(var1);
-
-                return result;
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
             }
 
             // n_clamp
             object NClamp(Node node, object prevResult)
             {
-                NodeDataValue value = null;
-                if (node.Data.ContainsKey("value") && node.Data["value"] is JObject valueObject)
+                try
                 {
-                    value = valueObject.ToObject<NodeDataValue>();
+                    NodeDataValue value = null;
+                    if (node.Data.ContainsKey("value") && node.Data["value"] is JObject valueObject)
+                    {
+                        value = valueObject.ToObject<NodeDataValue>();
+                    }
+                    NodeDataValue valueMin = null;
+                    if (node.Data.ContainsKey("valueMin") && node.Data["valueMin"] is JObject valueMinObject)
+                    {
+                        valueMin = valueMinObject.ToObject<NodeDataValue>();
+                    }
+                    NodeDataValue valueMax = null;
+                    if (node.Data.ContainsKey("valueMax") && node.Data["valueMax"] is JObject valueMaxObject)
+                    {
+                        valueMax = valueMaxObject.ToObject<NodeDataValue>();
+                    }
+
+                    Debug.Log($"Clamping value {value.Value} ({value.Type}) between {valueMin.Value} ({valueMin.Type}) and {valueMax.Value} ({valueMax.Type})");
+
+                    var var1 = TryGetDataVariable(value.Value, value.IsCustom, prevResult, value.Type);
+                    var1 = ConvertToSingle((string)var1);
+                    var varMin = TryGetDataVariable(valueMin.Value, valueMin.IsCustom, prevResult, valueMin.Type);
+                    varMin = ConvertToSingle((string)varMin);
+                    var varMax = TryGetDataVariable(valueMax.Value, valueMax.IsCustom, prevResult, valueMax.Type);
+                    varMax = ConvertToSingle((string)varMax);
+
+                    var result = Mathf.Clamp((float)var1, (float)varMin, (float)varMax);
+
+                    return result;
                 }
-                NodeDataValue valueMin = null;
-                if (node.Data.ContainsKey("valueMin") && node.Data["valueMin"] is JObject valueMinObject)
+                catch (Exception ex)
                 {
-                    valueMin = valueMinObject.ToObject<NodeDataValue>();
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
                 }
-                NodeDataValue valueMax = null;
-                if (node.Data.ContainsKey("valueMax") && node.Data["valueMax"] is JObject valueMaxObject)
-                {
-                    valueMax = valueMaxObject.ToObject<NodeDataValue>();
-                }
-
-                Debug.Log($"Clamping value {value.Value} ({value.Type}) between {valueMin.Value} ({valueMin.Type}) and {valueMax.Value} ({valueMax.Type})");
-
-                var var1 = (float)TryGetDataVariable(value.Value, value.IsCustom, prevResult, value.Type);
-                var varMin = (float)TryGetDataVariable(valueMin.Value, valueMin.IsCustom, prevResult, valueMin.Type);
-                var varMax = (float)TryGetDataVariable(valueMax.Value, valueMax.IsCustom, prevResult, valueMax.Type);
-
-                var result = Mathf.Clamp(var1, varMin, varMax);
-
-                return result;
             }
 
             // a_sendEvent
             object ASendEvent(Node node, object prevResult)
             {
-                List<NodeDataEventCustomData> customDataObj = null;
-                if (node.Data.ContainsKey("customData") && node.Data["customData"] is JArray customDataArray)
+                try
                 {
-                    customDataObj = customDataArray.ToObject<List<NodeDataEventCustomData>>();
-                }
+                    List<NodeDataEventCustomData> customDataObj = null;
+                    if (node.Data.ContainsKey("customData") && node.Data["customData"] is JArray customDataArray)
+                    {
+                        customDataObj = customDataArray.ToObject<List<NodeDataEventCustomData>>();
+                    }
 
-                Dictionary<string, object> customData = new Dictionary<string, object>();
-                foreach (var item in customDataObj)
+                    Dictionary<string, object> customData = new Dictionary<string, object>();
+                    foreach (var item in customDataObj)
+                    {
+                        object var1 = TryGetDataVariable(item.Value.Value, item.Value.IsCustom, prevResult, item.Value.Type);
+                        var1 = TryChangeDataType(var1, item.Value.Type);
+                        customData.Add(item.Field, var1);
+                    }
+                    _ = Analytics.SendCustomEvent((string)node.Data["eventID"], customData);
+
+                    Debug.Log($"Event with ID \"{node.Data["eventID"]}\" was sent with {customDataObj.Count} additional custom fields.");
+                    var result = true;
+                    return result;
+                }
+                catch (Exception ex)
                 {
-                    object var1 = TryGetDataVariable(item.Value.Value, item.Value.IsCustom, prevResult, item.Value.Type);
-                    var1 = TryChangeDataType(var1, item.Value.Type);
-                    customData.Add(item.Field, var1);
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
                 }
-                _ = Analytics.SendCustomEvent((string)node.Data["eventID"], customData);
-
-                Debug.Log($"Event with ID \"{node.Data["eventID"]}\" should be sent with {customDataObj.Count} additional custom fields.");
-                var result = true;
-                return result;
             }
 
             // fc_sequence
             object FcSequence(Node node, object prevResult)
             {
-                var result = true;
-                return result;
+                try
+                {
+                    var result = true;
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
             }
 
             // a_setStatElement
             object ASetStatElement(Node node, object prevResult)
             {
-                NodeDataValue value = null;
-                if (node.Data.ContainsKey("value") && node.Data["value"] is JObject valueObject)
+                try
                 {
-                    value = valueObject.ToObject<NodeDataValue>();
-                }
-                var var1 = TryGetDataVariable(value.Value, value.IsCustom, prevResult, value.Type);
+                    NodeDataValue value = null;
+                    if (node.Data.ContainsKey("value") && node.Data["value"] is JObject valueObject)
+                    {
+                        value = valueObject.ToObject<NodeDataValue>();
+                    }
+                    var var1 = TryGetDataVariable(value.Value, value.IsCustom, prevResult, value.Type);
 
-                NodeDataValue templateInternalId = null;
-                if (node.Data.ContainsKey("template") && node.Data["template"] is JObject templateInternalIdObject)
+                    NodeDataValue templateInternalId = null;
+                    if (node.Data.ContainsKey("template") && node.Data["template"] is JObject templateInternalIdObject)
+                    {
+                        templateInternalId = templateInternalIdObject.ToObject<NodeDataValue>();
+                    }
+                    ElementTemplate template = WarehouseHelperMethods.GetTemplateByInternalId((string)templateInternalId.Value);
+                    WarehouseHelperMethods.SetPlayerElementValue(template.Id, var1);
+
+                    SetVariableValue(template.Id, var1);
+                    UpdateTemplateVariableAfterElementChange((string)templateInternalId.Value);
+
+                    var result = var1;
+                    return result;
+                }
+                catch (Exception ex)
                 {
-                    templateInternalId = templateInternalIdObject.ToObject<NodeDataValue>();
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
                 }
-                ElementTemplate template = WarehouseHelperMethods.GetTemplateByInternalId((string)templateInternalId.Value);
-                WarehouseHelperMethods.SetPlayerElementValue(template.Id, var1);
-
-                SetVariableValue(template.Id, var1);
-                UpdateTemplateVariableAfterElementChange((string)templateInternalId.Value);
-
-                var result = var1;
-                return result;
             }
 
             // a_showOffer
             object AShowOffer(Node node, object prevResult)
             {
-                var offers = new List<Offer>();
+                try
+                {
+                    var offers = new List<Offer>();
 
-                var o = OffersHelperMethods.GetOfferByInternalId((string)node.Data["offerID"], true);
-                offers.Add(o);
+                    var o = OffersHelperMethods.GetOfferByInternalId((string)node.Data["offerID"], true);
+                    offers.Add(o);
 
-                OffersHelperMethods.InvokeTriggeredOffers(offers);
+                    OffersHelperMethods.InvokeTriggeredOffers(offers);
 
-                Debug.Log($"Offer with ID \"{node.Data["offerID"]}\" should be returned in the event \"OnOffersTriggered\" by now.");
-                var result = true;
-                return result;
+                    Debug.Log($"Offer with ID \"{node.Data["offerID"]}\" should be returned in the event \"OnOffersTriggered\" by now.");
+                    var result = true;
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
             }
 
             // a_callCustomFlow
             object ACallCustomFlow(Node node, object prevResult)
             {
-                var result = node.Data["customTriggerID"];
-                if (!string.IsNullOrEmpty((string)result))
+                try
                 {
-                    FlowsManager.Instance.ExecuteCustomFlow((string)result);
-                }
-                else
-                {
-                    Debug.Log($"Could not call custom flow. ID to call was null or empty.");
-                    result = false;
-                }
+                    var result = node.Data["customTriggerID"];
+                    if (!string.IsNullOrEmpty((string)result))
+                    {
+                        FlowsManager.Instance.ExecuteCustomFlow((string)result);
+                    }
+                    else
+                    {
+                        Debug.Log($"Could not call custom flow. ID to call was null or empty.");
+                        result = false;
+                    }
 
-                return result;
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
             }
 
             // a_subtractStatElement
             object ASubtractStatElement(Node node, object prevResult)
             {
-                NodeDataValue value = null;
-                if (node.Data.ContainsKey("value") && node.Data["value"] is JObject valueObject)
+                try
                 {
-                    value = valueObject.ToObject<NodeDataValue>();
-                }
-                var var1 = TryGetDataVariable(value.Value, value.IsCustom, prevResult, value.Type);
+                    NodeDataValue value = null;
+                    if (node.Data.ContainsKey("value") && node.Data["value"] is JObject valueObject)
+                    {
+                        value = valueObject.ToObject<NodeDataValue>();
+                    }
+                    var var1 = TryGetDataVariable(value.Value, value.IsCustom, prevResult, value.Type);
 
-                NodeDataValue templateInternalId = null;
-                if (node.Data.ContainsKey("template") && node.Data["template"] is JObject templateInternalIdObject)
+                    NodeDataValue templateInternalId = null;
+                    if (node.Data.ContainsKey("template") && node.Data["template"] is JObject templateInternalIdObject)
+                    {
+                        templateInternalId = templateInternalIdObject.ToObject<NodeDataValue>();
+                    }
+
+                    ElementTemplate template = WarehouseHelperMethods.GetTemplateByInternalId((string)templateInternalId.Value);
+                    WarehouseHelperMethods.SubtractPlayerElementValue(template.Id, var1);
+
+                    SetVariableValue(template.Id, var1);
+                    UpdateTemplateVariableAfterElementChange((string)templateInternalId.Value);
+
+                    var result = var1;
+                    return result;
+                }
+                catch (Exception ex)
                 {
-                    templateInternalId = templateInternalIdObject.ToObject<NodeDataValue>();
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
                 }
-
-                ElementTemplate template = WarehouseHelperMethods.GetTemplateByInternalId((string)templateInternalId.Value);
-                WarehouseHelperMethods.SubtractPlayerElementValue(template.Id, var1);
-
-                SetVariableValue(template.Id, var1);
-                UpdateTemplateVariableAfterElementChange((string)templateInternalId.Value);
-
-                var result = var1;
-                return result;
             }
 
             // a_addToStatElement
             object AAddToStatElement(Node node, object prevResult)
             {
-                NodeDataValue value = null;
-                if (node.Data.ContainsKey("value") && node.Data["value"] is JObject valueObject)
+                try
                 {
-                    value = valueObject.ToObject<NodeDataValue>();
-                }
-                var var1 = TryGetDataVariable(value.Value, value.IsCustom, prevResult, value.Type);
+                    NodeDataValue value = null;
+                    if (node.Data.ContainsKey("value") && node.Data["value"] is JObject valueObject)
+                    {
+                        value = valueObject.ToObject<NodeDataValue>();
+                    }
+                    var var1 = TryGetDataVariable(value.Value, value.IsCustom, prevResult, value.Type);
 
-                NodeDataValue templateInternalId = null;
-                if (node.Data.ContainsKey("template") && node.Data["template"] is JObject templateInternalIdObject)
+                    NodeDataValue templateInternalId = null;
+                    if (node.Data.ContainsKey("template") && node.Data["template"] is JObject templateInternalIdObject)
+                    {
+                        templateInternalId = templateInternalIdObject.ToObject<NodeDataValue>();
+                    }
+
+                    ElementTemplate template = WarehouseHelperMethods.GetTemplateByInternalId((string)templateInternalId.Value);
+                    WarehouseHelperMethods.AddPlayerElementValue(template.Id, var1);
+
+                    SetVariableValue(template.Id, var1);
+                    UpdateTemplateVariableAfterElementChange((string)templateInternalId.Value);
+
+                    var result = var1;
+                    return result;
+                }
+                catch (Exception ex)
                 {
-                    templateInternalId = templateInternalIdObject.ToObject<NodeDataValue>();
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
                 }
-
-                ElementTemplate template = WarehouseHelperMethods.GetTemplateByInternalId((string)templateInternalId.Value);
-                WarehouseHelperMethods.AddPlayerElementValue(template.Id, var1);
-
-                SetVariableValue(template.Id, var1);
-                UpdateTemplateVariableAfterElementChange((string)templateInternalId.Value);
-
-                var result = var1;
-                return result;
             }
 
             // a_removeFromSegment
             object ARemoveFromSegment(Node node, object prevResult)
             {
-                // Loading config file
-                StrixSDKConfig config = StrixSDKConfig.Instance;
-
-                var buildType = config.branch;
-
-                var sessionID = PlayerPrefs.GetString("Strix_SessionID", string.Empty);
-                var clientID = PlayerPrefs.GetString("Strix_ClientID", string.Empty);
-                if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(clientID))
+                try
                 {
-                    throw new Exception("Error while executing flow. Cannot remove player from segment: sessionID or clientID is null or empty");
-                }
+                    // Loading config file
+                    StrixSDKConfig config = StrixSDKConfig.Instance;
 
-                var body = new Dictionary<string, object>()
+                    var buildType = config.branch;
+
+                    var sessionID = PlayerPrefs.GetString("Strix_SessionID", string.Empty);
+                    var clientID = PlayerPrefs.GetString("Strix_ClientID", string.Empty);
+                    if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(clientID))
+                    {
+                        throw new Exception("Error while executing flow. Cannot remove player from segment: sessionID or clientID is null or empty");
+                    }
+
+                    var body = new Dictionary<string, object>()
                 {
                     {"device", clientID},
                     {"secret", config.apiKey},
@@ -1095,30 +1347,38 @@ namespace StrixSDK.Runtime
                         {"nodeSid", node.Sid },
                     } }
                 };
-                _ = Client.Req(API.BackendAction, body);
-                WarehouseHelperMethods.RemoveSegmentFromPlayer((string)node.Data["segmentID"]);
+                    _ = Client.Req(API.BackendAction, body);
+                    WarehouseHelperMethods.RemoveSegmentFromPlayer((string)node.Data["segmentID"]);
 
-                Debug.Log($"Removing segment \"{node.Data["segmentID"]}\" from player");
-                var result = true;
-                return result;
+                    Debug.Log($"Removing segment \"{node.Data["segmentID"]}\" from player");
+                    var result = true;
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
             }
 
             // a_addToSegment
             object AAddToSegment(Node node, object prevResult)
             {
-                // Loading config file
-                StrixSDKConfig config = StrixSDKConfig.Instance;
-
-                var buildType = config.branch;
-
-                var sessionID = PlayerPrefs.GetString("Strix_SessionID", string.Empty);
-                var clientID = PlayerPrefs.GetString("Strix_ClientID", string.Empty);
-                if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(clientID))
+                try
                 {
-                    throw new Exception("Error while executing flow. Cannot add segment to player: sessionID or clientID is null or empty");
-                }
+                    // Loading config file
+                    StrixSDKConfig config = StrixSDKConfig.Instance;
 
-                var body = new Dictionary<string, object>()
+                    var buildType = config.branch;
+
+                    var sessionID = PlayerPrefs.GetString("Strix_SessionID", string.Empty);
+                    var clientID = PlayerPrefs.GetString("Strix_ClientID", string.Empty);
+                    if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(clientID))
+                    {
+                        throw new Exception("Error while executing flow. Cannot add segment to player: sessionID or clientID is null or empty");
+                    }
+
+                    var body = new Dictionary<string, object>()
                 {
                     {"device", clientID},
                     {"secret", config.apiKey},
@@ -1130,307 +1390,340 @@ namespace StrixSDK.Runtime
                         {"nodeSid", node.Sid },
                     } }
                 };
-                _ = Client.Req(API.BackendAction, body);
-                WarehouseHelperMethods.AddSegmentToPlayer((string)node.Data["segmentID"]);
+                    _ = Client.Req(API.BackendAction, body);
+                    WarehouseHelperMethods.AddSegmentToPlayer((string)node.Data["segmentID"]);
 
-                Debug.Log($"Adding segment \"{node.Data["segmentID"]}\" to player");
-                var result = true;
-                return result;
+                    Debug.Log($"Adding segment \"{node.Data["segmentID"]}\" to player");
+                    var result = true;
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
             }
 
             // a_applyChange
             object AApplyChange(Node node, object prevResult)
             {
-                NodeDataValue fieldToSet = null;
-                if (node.Data.ContainsKey("fieldToSet") && node.Data["fieldToSet"] is JObject fieldToSetObject)
+                try
                 {
-                    fieldToSet = fieldToSetObject.ToObject<NodeDataValue>();
-                }
+                    NodeDataValue fieldToSet = null;
+                    if (node.Data.ContainsKey("fieldToSet") && node.Data["fieldToSet"] is JObject fieldToSetObject)
+                    {
+                        fieldToSet = fieldToSetObject.ToObject<NodeDataValue>();
+                    }
 
-                var result = node.Data["value"];
+                    var result = node.Data["value"];
 
-                switch (fieldToSet.Type)
-                {
-                    case "offerIcon":
-                        var fileName = Path.GetFileName((string)result);
+                    switch (fieldToSet.Type)
+                    {
+                        case "offerIcon":
+                            var fileName = Path.GetFileName((string)result);
 
-                        // Check if the file exists in the cache
-                        if (Content.DoesMediaExist(fileName))
-                        {
-                            // If the file exists, set it's name now instead of the old one
-                            _offer.Icon = fileName;
-                        }
-                        else
-                        {
-                            Debug.LogError($"Error at AApplyChange: tried to set '{fieldToSet.Type}', but the value is '{result.ToString()}'");
-                        }
-                        break;
-
-                    case "offerPrice":
-                        _offer.Price.Value = (float)result;
-                        break;
-
-                    case "offerDiscount":
-                        _offer.Pricing.Discount = (int)result;
-                        break;
-
-                    case "entityConfigValue":
-                        var changed = false;
-                        foreach (var value in _entityConfig.RawValues)
-                        {
-                            if (value.Sid == (string)fieldToSet.Value)
+                            // Check if the file exists in the cache
+                            if (Content.DoesMediaExist(fileName))
                             {
-                                var firstMatchingSegment = EntityHelperMethods.PickAppropriateSegmentedValue(value);
-                                var segmentValue = value.Segments.FirstOrDefault(s => s.SegmentID == firstMatchingSegment.SegmentID);
-                                if (segmentValue != null)
-                                {
-                                    segmentValue.Value = (string)result;
-                                    changed = true;
-                                }
-                                break;
+                                // If the file exists, set it's name now instead of the old one
+                                _offer.Icon = fileName;
                             }
-                            if (value.Values != null)
+                            else
                             {
-                                foreach (var subValue in value.Values)
+                                Debug.LogError($"Error at AApplyChange: tried to set '{fieldToSet.Type}', but the value is '{result.ToString()}'");
+                            }
+                            break;
+
+                        case "offerPrice":
+                            _offer.Price.Value = (float)result;
+                            break;
+
+                        case "offerDiscount":
+                            _offer.Pricing.Discount = (int)result;
+                            break;
+
+                        case "entityConfigValue":
+                            var changed = false;
+                            foreach (var value in _entityConfig.RawValues)
+                            {
+                                if (value.Sid == (string)fieldToSet.Value)
                                 {
-                                    if (subValue.Sid == (string)fieldToSet.Value)
+                                    var firstMatchingSegment = EntityHelperMethods.PickAppropriateSegmentedValue(value);
+                                    var segmentValue = value.Segments.FirstOrDefault(s => s.SegmentID == firstMatchingSegment.SegmentID);
+                                    if (segmentValue != null)
                                     {
-                                        var firstMatchingSegment = EntityHelperMethods.PickAppropriateSegmentedValue(subValue);
-                                        var segmentValue = subValue.Segments.FirstOrDefault(s => s.SegmentID == firstMatchingSegment.SegmentID);
-                                        if (segmentValue != null)
+                                        segmentValue.Value = (string)result;
+                                        changed = true;
+                                    }
+                                    break;
+                                }
+                                if (value.Values != null)
+                                {
+                                    foreach (var subValue in value.Values)
+                                    {
+                                        if (subValue.Sid == (string)fieldToSet.Value)
                                         {
-                                            segmentValue.Value = (string)result;
-                                            changed = true;
+                                            var firstMatchingSegment = EntityHelperMethods.PickAppropriateSegmentedValue(subValue);
+                                            var segmentValue = subValue.Segments.FirstOrDefault(s => s.SegmentID == firstMatchingSegment.SegmentID);
+                                            if (segmentValue != null)
+                                            {
+                                                segmentValue.Value = (string)result;
+                                                changed = true;
+                                            }
+                                            break;
                                         }
-                                        break;
                                     }
                                 }
                             }
-                        }
-                        if (!changed)
-                        {
-                            Debug.LogError($"Error while applying change in flow. Tried to change entity config value, but couldn't find the value to change. Config remains unchanged.");
-                        }
-                        break;
+                            if (!changed)
+                            {
+                                Debug.LogError($"Error while applying change in flow. Tried to change entity config value, but couldn't find the value to change. Config remains unchanged.");
+                            }
+                            break;
 
-                    default:
-                        Debug.LogError($"Error while applying change in flow. Met unknown '{fieldToSet.Type}' type.");
-                        break;
+                        default:
+                            Debug.LogError($"Error while applying change in flow. Met unknown '{fieldToSet.Type}' type.");
+                            break;
+                    }
+
+                    return (result);
                 }
-
-                return (result);
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
             }
 
             // fc_switch
             object FcSwitch(Node node, object prevResult)
             {
-                List<string> logging = new List<string>();
-
-                NodeDataValue field = null;
-                if (node.Data.ContainsKey("field") && node.Data["field"] is JObject fieldObject)
+                try
                 {
-                    field = fieldObject.ToObject<NodeDataValue>();
-                }
+                    List<string> logging = new List<string>();
 
-                var var1 = TryGetDataVariable(
-                field.Value,
-                    field.IsCustom,
-                prevResult,
-                    field.Type
-                );
-
-                List<NodeDataCases> cases = null;
-                if (node.Data.ContainsKey("cases") && node.Data["cases"] is JObject casesObject)
-                {
-                    cases = casesObject.ToObject<List<NodeDataCases>>();
-                }
-
-                var result = cases.FindIndex(c => c.IsDefault == true);
-
-                for (int i = 0; i < cases.Count; i++)
-                {
-                    if (cases[i].IsDefault != true)
+                    NodeDataValue field = null;
+                    if (node.Data.ContainsKey("field") && node.Data["field"] is JObject fieldObject)
                     {
-                        if (var1.ToString() == cases[i].Type)
+                        field = fieldObject.ToObject<NodeDataValue>();
+                    }
+
+                    var var1 = TryGetDataVariable(
+                    field.Value,
+                        field.IsCustom,
+                    prevResult,
+                        field.Type
+                    );
+
+                    List<NodeDataCases> cases = null;
+                    if (node.Data.ContainsKey("cases") && node.Data["cases"] is JObject casesObject)
+                    {
+                        cases = casesObject.ToObject<List<NodeDataCases>>();
+                    }
+
+                    var result = cases.FindIndex(c => c.IsDefault == true);
+
+                    for (int i = 0; i < cases.Count; i++)
+                    {
+                        if (cases[i].IsDefault != true)
                         {
-                            Debug.Log($"Switching on field {field.Value} with value \"{var1}\". Case \"{cases[i].Type}\": true");
-                            result = i;
-                            return result;
-                        }
-                        else
-                        {
-                            Debug.Log($"Switching on field {field.Value} with value \"{var1}\". Case \"{cases[i].Type}\": false");
+                            if (var1.ToString() == cases[i].Type)
+                            {
+                                Debug.Log($"Switching on field {field.Value} with value \"{var1}\". Case \"{cases[i].Type}\": true");
+                                result = i;
+                                return result;
+                            }
+                            else
+                            {
+                                Debug.Log($"Switching on field {field.Value} with value \"{var1}\". Case \"{cases[i].Type}\": false");
+                            }
                         }
                     }
-                }
 
-                return ((object)result);
+                    return ((object)result);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
             }
 
             // fc_branch
             object FcBranch(Node node, object prevResult)
             {
-                List<string> logging = new List<string>();
-                bool result = true;
-
-                List<NodeDataConditions> conditions = null;
-                if (node.Data.ContainsKey("conditions") && node.Data["conditions"] is JArray conditionsObject)
+                try
                 {
-                    conditions = conditionsObject.ToObject<List<NodeDataConditions>>();
-                }
+                    List<string> logging = new List<string>();
+                    bool result = true;
 
-                foreach (var cond in conditions)
-                {
-                    string dataType = "";
-                    switch (cond.Operator)
+                    List<NodeDataConditions> conditions = null;
+                    if (node.Data.ContainsKey("conditions") && node.Data["conditions"] is JArray conditionsObject)
                     {
-                        case "=":
-                        case "!=":
-                        case "includes":
-                            dataType = "string";
-                            break;
-
-                        case ">":
-                        case "<":
-                        case ">=":
-                        case "<=":
-                            dataType = "number";
-                            break;
+                        conditions = conditionsObject.ToObject<List<NodeDataConditions>>();
                     }
 
-                    var var1 = TryGetDataVariable(
-                        cond.Value1.Value,
-                        cond.Value1.IsCustom,
-                        prevResult,
-                        cond.Value1.Type
-                    );
-                    var1 = TryChangeDataType(var1, dataType);
-
-                    var var2 = TryGetDataVariable(
-                        cond.Value2.Value,
-                        cond.Value2.IsCustom,
-                        prevResult,
-                        cond.Value2.Type
-                    );
-                    var2 = TryChangeDataType(var2, dataType);
-
-                    // Set the result to false if any condition fails
-                    switch (cond.Operator)
+                    foreach (var cond in conditions)
                     {
-                        case "=":
-                            if (!var1.Equals(var2))
-                            {
-                                result = false;
-                            }
-                            Debug.Log($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {var1.Equals(var2)}");
-                            break;
+                        string dataType = "";
+                        switch (cond.Operator)
+                        {
+                            case "=":
+                            case "!=":
+                            case "includes":
+                                dataType = "string";
+                                break;
 
-                        case "!=":
-                            if (var1.Equals(var2))
-                            {
-                                result = false;
-                            }
-                            Debug.Log($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {var1.Equals(var2)}");
-                            break;
+                            case ">":
+                            case "<":
+                            case ">=":
+                            case "<=":
+                                dataType = "number";
+                                break;
+                        }
 
-                        case "includes":
-                            if (!((string)var1).Contains((string)var2))
-                            {
-                                result = false;
-                            }
-                            Debug.Log($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {((string)var1).Contains((string)var2)}");
-                            break;
+                        var var1 = TryGetDataVariable(
+                            cond.Value1.Value,
+                            cond.Value1.IsCustom,
+                            prevResult,
+                            cond.Value1.Type
+                        );
+                        var1 = TryChangeDataType(var1, dataType);
 
-                        case ">":
-                            if ((double)var1 < (double)var2)
-                            {
-                                result = false;
-                            }
-                            Debug.Log($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {(double)var1 > (double)var2}");
-                            break;
+                        var var2 = TryGetDataVariable(
+                            cond.Value2.Value,
+                            cond.Value2.IsCustom,
+                            prevResult,
+                            cond.Value2.Type
+                        );
+                        var2 = TryChangeDataType(var2, dataType);
 
-                        case "<":
-                            if ((double)var1 > (double)var2)
-                            {
-                                result = false;
-                            }
-                            Debug.Log($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {(double)var1 < (double)var2}");
-                            break;
+                        // Set the result to false if any condition fails
+                        switch (cond.Operator)
+                        {
+                            case "=":
+                                if (!var1.Equals(var2))
+                                {
+                                    result = false;
+                                }
+                                Debug.Log($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {var1.Equals(var2)}");
+                                break;
 
-                        case ">=":
-                            if ((double)var1 <= (double)var2)
-                            {
-                                result = false;
-                            }
-                            Debug.Log($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {(double)var1 >= (double)var2}");
-                            break;
+                            case "!=":
+                                if (var1.Equals(var2))
+                                {
+                                    result = false;
+                                }
+                                Debug.Log($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {var1.Equals(var2)}");
+                                break;
 
-                        case "<=":
-                            if ((double)var1 >= (double)var2)
-                            {
-                                result = false;
-                            }
-                            Debug.Log($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {(double)var1 <= (double)var2}");
-                            break;
+                            case "includes":
+                                if (!((string)var1).Contains((string)var2))
+                                {
+                                    result = false;
+                                }
+                                Debug.Log($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {((string)var1).Contains((string)var2)}");
+                                break;
+
+                            case ">":
+                                if ((double)var1 < (double)var2)
+                                {
+                                    result = false;
+                                }
+                                Debug.Log($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {(double)var1 > (double)var2}");
+                                break;
+
+                            case "<":
+                                if ((double)var1 > (double)var2)
+                                {
+                                    result = false;
+                                }
+                                Debug.Log($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {(double)var1 < (double)var2}");
+                                break;
+
+                            case ">=":
+                                if ((double)var1 <= (double)var2)
+                                {
+                                    result = false;
+                                }
+                                Debug.Log($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {(double)var1 >= (double)var2}");
+                                break;
+
+                            case "<=":
+                                if ((double)var1 >= (double)var2)
+                                {
+                                    result = false;
+                                }
+                                Debug.Log($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {(double)var1 <= (double)var2}");
+                                break;
+                        }
                     }
-                }
 
-                return (object)result;
+                    return (object)result;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
             }
 
             // fc_splitTest
             object FcSplitTest(Node node, object prevResult)
             {
-                List<string> logging = new List<string>();
-
-                List<double> cumulativeProbabilities = new List<double>();
-                double cumulativeSum = 0;
-
-                List<NodeDataSplits> splits = null;
-                if (node.Data.ContainsKey("splits") && node.Data["splits"] is JObject splitsObject)
+                try
                 {
-                    splits = splitsObject.ToObject<List<NodeDataSplits>>();
-                }
+                    List<string> logging = new List<string>();
 
-                // Make an array of probabilities
-                foreach (var split in splits)
-                {
-                    cumulativeSum += split.Share;
-                    cumulativeProbabilities.Add(cumulativeSum);
-                }
+                    List<double> cumulativeProbabilities = new List<double>();
+                    double cumulativeSum = 0;
 
-                var numbers = cumulativeProbabilities.Select((p, i) => i).ToList();
-
-                var result = numbers[numbers.Count - 1];
-
-                for (int i = 0; i < splits.Count; i++)
-                {
-                    string segmentId = $"flow_{flowSid}_splitTest_{node.Sid}_{splits[i].Sid}";
-                    if (PlayerManager.Instance._playerData.Segments.Contains(segmentId))
+                    List<NodeDataSplits> splits = null;
+                    if (node.Data.ContainsKey("splits") && node.Data["splits"] is JArray splitsObject)
                     {
-                        return result;
+                        splits = splitsObject.ToObject<List<NodeDataSplits>>();
                     }
-                }
 
-                var randomValue = UnityEngine.Random.Range(0, 100); // Get random value
-                for (int i = 0; i < cumulativeProbabilities.Count; i++)
-                {
-                    if (randomValue < cumulativeProbabilities[i])
+                    // Make an array of probabilities
+                    foreach (var split in splits)
                     {
-                        // Loading config file
-                        StrixSDKConfig config = StrixSDKConfig.Instance;
+                        cumulativeSum += split.Share;
+                        cumulativeProbabilities.Add(cumulativeSum);
+                    }
 
-                        var buildType = config.branch;
+                    var numbers = cumulativeProbabilities.Select((p, i) => i).ToList();
 
-                        var sessionID = PlayerPrefs.GetString("Strix_SessionID", string.Empty);
-                        var clientID = PlayerPrefs.GetString("Strix_ClientID", string.Empty);
-                        if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(clientID))
-                        {
-                            throw new Exception("Error while executing flow. Cannot add segment to player: sessionID or clientID is null or empty");
-                        }
+                    var result = numbers[numbers.Count - 1];
 
+                    for (int i = 0; i < splits.Count; i++)
+                    {
                         string segmentId = $"flow_{flowSid}_splitTest_{node.Sid}_{splits[i].Sid}";
-                        var body = new Dictionary<string, object>()
+                        if (PlayerManager.Instance._playerData.Segments.Contains(segmentId))
+                        {
+                            Debug.Log($"Split number: {numbers[i]}");
+                            return (object)numbers[i]; // Pick path if split-segment is already present
+                        }
+                    }
+
+                    var randomValue = UnityEngine.Random.Range(0, 100); // Get random value
+                    for (int i = 0; i < cumulativeProbabilities.Count; i++)
+                    {
+                        if (randomValue < cumulativeProbabilities[i])
+                        {
+                            // Loading config file
+                            StrixSDKConfig config = StrixSDKConfig.Instance;
+
+                            var buildType = config.branch;
+
+                            var sessionID = PlayerPrefs.GetString("Strix_SessionID", string.Empty);
+                            var clientID = PlayerPrefs.GetString("Strix_ClientID", string.Empty);
+                            if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(clientID))
+                            {
+                                throw new Exception("Error while executing flow. Cannot add segment to player: sessionID or clientID is null or empty");
+                            }
+
+                            string segmentId = $"flow_{flowSid}_splitTest_{node.Sid}_{splits[i].Sid}";
+                            var body = new Dictionary<string, object>()
                         {
                             {"device", clientID},
                             {"secret", config.apiKey},
@@ -1442,344 +1735,406 @@ namespace StrixSDK.Runtime
                                 {"nodeSid", node.Sid },
                             } }
                         };
-                        _ = Client.Req(API.BackendAction, body);
-                        WarehouseHelperMethods.AddSegmentToPlayer(segmentId);
+                            _ = Client.Req(API.BackendAction, body);
+                            WarehouseHelperMethods.AddSegmentToPlayer(segmentId);
 
-                        Debug.Log($"Choosing random audience path. Path {numbers[i]} was chosen");
-                        result = numbers[i]; // Pick appropriate path
+                            Debug.Log($"Choosing random audience path. Path {numbers[i]} was chosen");
+                            result = numbers[i]; // Pick appropriate path
 
-                        return result;
+                            return result;
+                        }
                     }
-                }
 
-                return ((object)result);
+                    return ((object)result);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
             }
 
             // ops_add
             object OpsAdd(Node node, object prevResult)
             {
-                List<string> logging = new List<string>();
-
-                NodeDataValue value1 = null;
-                if (node.Data.ContainsKey("value1") && node.Data["value1"] is JObject value1Object)
+                try
                 {
-                    value1 = value1Object.ToObject<NodeDataValue>();
+                    List<string> logging = new List<string>();
+
+                    NodeDataValue value1 = null;
+                    if (node.Data.ContainsKey("value1") && node.Data["value1"] is JObject value1Object)
+                    {
+                        value1 = value1Object.ToObject<NodeDataValue>();
+                    }
+                    NodeDataValue value2 = null;
+                    if (node.Data.ContainsKey("value2") && node.Data["value2"] is JObject value2Object)
+                    {
+                        value2 = value2Object.ToObject<NodeDataValue>();
+                    }
+
+                    Debug.Log(
+                        $"Summing {value1.Value} ({value1.Type}) and {value2.Value} ({value2.Type})"
+                    );
+
+                    var var1 = TryGetDataVariable(
+                        value1.Value,
+                        value1.IsCustom,
+                        prevResult,
+                        value1.Type
+                    );
+
+                    var var2 = TryGetDataVariable(
+                        value2.Value,
+                        value2.IsCustom,
+                        prevResult,
+                        value2.Type
+                    );
+
+                    if (var1.GetType() != typeof(double))
+                    {
+                        var1 = TryChangeDataType(var1, "number");
+                    }
+
+                    if (var2.GetType() != typeof(double))
+                    {
+                        var2 = TryChangeDataType(var2, "number");
+                    }
+
+                    double result = Convert.ToDouble(var1) + Convert.ToDouble(var2);
+
+                    return (object)result;
                 }
-                NodeDataValue value2 = null;
-                if (node.Data.ContainsKey("value2") && node.Data["value2"] is JObject value2Object)
+                catch (Exception ex)
                 {
-                    value2 = value2Object.ToObject<NodeDataValue>();
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
                 }
-
-                Debug.Log(
-                    $"Summing {value1.Value} ({value1.Type}) and {value2.Value} ({value2.Type})"
-                );
-
-                var var1 = TryGetDataVariable(
-                    value1.Value,
-                    value1.IsCustom,
-                    prevResult,
-                    value1.Type
-                );
-
-                var var2 = TryGetDataVariable(
-                    value2.Value,
-                    value2.IsCustom,
-                    prevResult,
-                    value2.Type
-                );
-
-                if (var1.GetType() != typeof(double))
-                {
-                    var1 = TryChangeDataType(var1, "number");
-                }
-
-                if (var2.GetType() != typeof(double))
-                {
-                    var2 = TryChangeDataType(var2, "number");
-                }
-
-                double result = Convert.ToDouble(var1) + Convert.ToDouble(var2);
-
-                return (object)result;
             }
 
             // ops_subtract
             object OpsSubtract(Node node, object prevResult)
             {
-                List<string> logging = new List<string>();
-
-                NodeDataValue value1 = null;
-                if (node.Data.ContainsKey("value1") && node.Data["value1"] is JObject value1Object)
+                try
                 {
-                    value1 = value1Object.ToObject<NodeDataValue>();
+                    List<string> logging = new List<string>();
+
+                    NodeDataValue value1 = null;
+                    if (node.Data.ContainsKey("value1") && node.Data["value1"] is JObject value1Object)
+                    {
+                        value1 = value1Object.ToObject<NodeDataValue>();
+                    }
+                    NodeDataValue value2 = null;
+                    if (node.Data.ContainsKey("value2") && node.Data["value2"] is JObject value2Object)
+                    {
+                        value2 = value2Object.ToObject<NodeDataValue>();
+                    }
+                    Debug.Log(
+                        $"Subtracting {value1.Value} ({value1.Type}) and {value2.Value} ({value2.Type})"
+                    );
+
+                    var var1 = TryGetDataVariable(
+                        value1.Value,
+                        value1.IsCustom,
+                        prevResult,
+                        value1.Type
+                    );
+
+                    var var2 = TryGetDataVariable(
+                        value2.Value,
+                        value2.IsCustom,
+                        prevResult,
+                        value2.Type
+                    );
+
+                    if (var1.GetType() != typeof(double))
+                    {
+                        var1 = TryChangeDataType(var1, "number");
+                    }
+
+                    if (var2.GetType() != typeof(double))
+                    {
+                        var2 = TryChangeDataType(var2, "number");
+                    }
+
+                    double result = Convert.ToDouble(var1) - Convert.ToDouble(var2);
+
+                    return (object)result;
                 }
-                NodeDataValue value2 = null;
-                if (node.Data.ContainsKey("value2") && node.Data["value2"] is JObject value2Object)
+                catch (Exception ex)
                 {
-                    value2 = value2Object.ToObject<NodeDataValue>();
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
                 }
-                Debug.Log(
-                    $"Subtracting {value1.Value} ({value1.Type}) and {value2.Value} ({value2.Type})"
-                );
-
-                var var1 = TryGetDataVariable(
-                    value1.Value,
-                    value1.IsCustom,
-                    prevResult,
-                    value1.Type
-                );
-
-                var var2 = TryGetDataVariable(
-                    value2.Value,
-                    value2.IsCustom,
-                    prevResult,
-                    value2.Type
-                );
-
-                if (var1.GetType() != typeof(double))
-                {
-                    var1 = TryChangeDataType(var1, "number");
-                }
-
-                if (var2.GetType() != typeof(double))
-                {
-                    var2 = TryChangeDataType(var2, "number");
-                }
-
-                double result = Convert.ToDouble(var1) - Convert.ToDouble(var2);
-
-                return (object)result;
             }
 
             // ops_multiply
             object OpsMultiply(Node node, object prevResult)
             {
-                List<string> logging = new List<string>();
-
-                NodeDataValue value1 = null;
-                if (node.Data.ContainsKey("value1") && node.Data["value1"] is JObject value1Object)
+                try
                 {
-                    value1 = value1Object.ToObject<NodeDataValue>();
+                    List<string> logging = new List<string>();
+
+                    NodeDataValue value1 = null;
+                    if (node.Data.ContainsKey("value1") && node.Data["value1"] is JObject value1Object)
+                    {
+                        value1 = value1Object.ToObject<NodeDataValue>();
+                    }
+                    NodeDataValue value2 = null;
+                    if (node.Data.ContainsKey("value2") && node.Data["value2"] is JObject value2Object)
+                    {
+                        value2 = value2Object.ToObject<NodeDataValue>();
+                    }
+                    Debug.Log(
+                        $"Multiplying {value1.Value} ({value1.Type}) and {value2.Value} ({value2.Type})"
+                    );
+
+                    var var1 = TryGetDataVariable(
+                        value1.Value,
+                        value1.IsCustom,
+                        prevResult,
+                        value1.Type
+                    );
+
+                    var var2 = TryGetDataVariable(
+                        value2.Value,
+                        value2.IsCustom,
+                        prevResult,
+                        value2.Type
+                    );
+
+                    if (var1.GetType() != typeof(double))
+                    {
+                        var1 = TryChangeDataType(var1, "number");
+                    }
+
+                    if (var2.GetType() != typeof(double))
+                    {
+                        var2 = TryChangeDataType(var2, "number");
+                    }
+
+                    double result = Convert.ToDouble(var1) * Convert.ToDouble(var2);
+
+                    return (object)result;
                 }
-                NodeDataValue value2 = null;
-                if (node.Data.ContainsKey("value2") && node.Data["value2"] is JObject value2Object)
+                catch (Exception ex)
                 {
-                    value2 = value2Object.ToObject<NodeDataValue>();
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
                 }
-                Debug.Log(
-                    $"Multiplying {value1.Value} ({value1.Type}) and {value2.Value} ({value2.Type})"
-                );
-
-                var var1 = TryGetDataVariable(
-                    value1.Value,
-                    value1.IsCustom,
-                    prevResult,
-                    value1.Type
-                );
-
-                var var2 = TryGetDataVariable(
-                    value2.Value,
-                    value2.IsCustom,
-                    prevResult,
-                    value2.Type
-                );
-
-                if (var1.GetType() != typeof(double))
-                {
-                    var1 = TryChangeDataType(var1, "number");
-                }
-
-                if (var2.GetType() != typeof(double))
-                {
-                    var2 = TryChangeDataType(var2, "number");
-                }
-
-                double result = Convert.ToDouble(var1) * Convert.ToDouble(var2);
-
-                return (object)result;
             }
 
             // ops_divide
             object OpsDivide(Node node, object prevResult)
             {
-                List<string> logging = new List<string>();
-
-                NodeDataValue value1 = null;
-                if (node.Data.ContainsKey("value1") && node.Data["value1"] is JObject value1Object)
+                try
                 {
-                    value1 = value1Object.ToObject<NodeDataValue>();
+                    List<string> logging = new List<string>();
+
+                    NodeDataValue value1 = null;
+                    if (node.Data.ContainsKey("value1") && node.Data["value1"] is JObject value1Object)
+                    {
+                        value1 = value1Object.ToObject<NodeDataValue>();
+                    }
+                    NodeDataValue value2 = null;
+                    if (node.Data.ContainsKey("value2") && node.Data["value2"] is JObject value2Object)
+                    {
+                        value2 = value2Object.ToObject<NodeDataValue>();
+                    }
+
+                    Debug.Log(
+                        $"Dividing {value1.Value} ({value1.Type}) and {value2.Value} ({value2.Type})"
+                    );
+
+                    var var1 = TryGetDataVariable(
+                        value1.Value,
+                        value1.IsCustom,
+                        prevResult,
+                        value1.Type
+                    );
+
+                    var var2 = TryGetDataVariable(
+                        value2.Value,
+                        value2.IsCustom,
+                        prevResult,
+                        value2.Type
+                    );
+
+                    if (var1.GetType() != typeof(double))
+                    {
+                        var1 = TryChangeDataType(var1, "number");
+                    }
+
+                    if (var2.GetType() != typeof(double))
+                    {
+                        var2 = TryChangeDataType(var2, "number");
+                    }
+
+                    double result = Convert.ToDouble(var1) / Convert.ToDouble(var2);
+
+                    return (object)result;
                 }
-                NodeDataValue value2 = null;
-                if (node.Data.ContainsKey("value2") && node.Data["value2"] is JObject value2Object)
+                catch (Exception ex)
                 {
-                    value2 = value2Object.ToObject<NodeDataValue>();
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
                 }
-
-                Debug.Log(
-                    $"Dividing {value1.Value} ({value1.Type}) and {value2.Value} ({value2.Type})"
-                );
-
-                var var1 = TryGetDataVariable(
-                    value1.Value,
-                    value1.IsCustom,
-                    prevResult,
-                    value1.Type
-                );
-
-                var var2 = TryGetDataVariable(
-                    value2.Value,
-                    value2.IsCustom,
-                    prevResult,
-                    value2.Type
-                );
-
-                if (var1.GetType() != typeof(double))
-                {
-                    var1 = TryChangeDataType(var1, "number");
-                }
-
-                if (var2.GetType() != typeof(double))
-                {
-                    var2 = TryChangeDataType(var2, "number");
-                }
-
-                double result = Convert.ToDouble(var1) / Convert.ToDouble(var2);
-
-                return (object)result;
             }
 
             // ops_power
             object OpsPower(Node node, object prevResult)
             {
-                List<string> logging = new List<string>();
-
-                NodeDataValue value1 = null;
-                if (node.Data.ContainsKey("value1") && node.Data["value1"] is JObject value1Object)
+                try
                 {
-                    value1 = value1Object.ToObject<NodeDataValue>();
+                    List<string> logging = new List<string>();
+
+                    NodeDataValue value1 = null;
+                    if (node.Data.ContainsKey("value1") && node.Data["value1"] is JObject value1Object)
+                    {
+                        value1 = value1Object.ToObject<NodeDataValue>();
+                    }
+                    NodeDataValue value2 = null;
+                    if (node.Data.ContainsKey("value2") && node.Data["value2"] is JObject value2Object)
+                    {
+                        value2 = value2Object.ToObject<NodeDataValue>();
+                    }
+
+                    Debug.Log(
+                        $"Finding power of {value1.Value} ({value1.Type}) and {value2.Value} ({value2.Type})"
+                    );
+
+                    var var1 = TryGetDataVariable(
+                        value1.Value,
+                        value1.IsCustom,
+                        prevResult,
+                        value1.Type
+                    );
+
+                    var var2 = TryGetDataVariable(
+                        value2.Value,
+                        value2.IsCustom,
+                        prevResult,
+                        value2.Type
+                    );
+
+                    if (var1.GetType() != typeof(double))
+                    {
+                        var1 = TryChangeDataType(var1, "number");
+                    }
+
+                    if (var2.GetType() != typeof(double))
+                    {
+                        var2 = TryChangeDataType(var2, "number");
+                    }
+
+                    double result = Math.Pow(Convert.ToDouble(var1), Convert.ToDouble(var2));
+
+                    return (object)result;
                 }
-                NodeDataValue value2 = null;
-                if (node.Data.ContainsKey("value2") && node.Data["value2"] is JObject value2Object)
+                catch (Exception ex)
                 {
-                    value2 = value2Object.ToObject<NodeDataValue>();
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
                 }
-
-                Debug.Log(
-                    $"Finding power of {value1.Value} ({value1.Type}) and {value2.Value} ({value2.Type})"
-                );
-
-                var var1 = TryGetDataVariable(
-                    value1.Value,
-                    value1.IsCustom,
-                    prevResult,
-                    value1.Type
-                );
-
-                var var2 = TryGetDataVariable(
-                    value2.Value,
-                    value2.IsCustom,
-                    prevResult,
-                    value2.Type
-                );
-
-                if (var1.GetType() != typeof(double))
-                {
-                    var1 = TryChangeDataType(var1, "number");
-                }
-
-                if (var2.GetType() != typeof(double))
-                {
-                    var2 = TryChangeDataType(var2, "number");
-                }
-
-                double result = Math.Pow(Convert.ToDouble(var1), Convert.ToDouble(var2));
-
-                return (object)result;
             }
 
             // ops_modulo
             object OpsModulo(Node node, object prevResult)
             {
-                List<string> logging = new List<string>();
-
-                NodeDataValue value1 = null;
-                if (node.Data.ContainsKey("value1") && node.Data["value1"] is JObject value1Object)
+                try
                 {
-                    value1 = value1Object.ToObject<NodeDataValue>();
+                    List<string> logging = new List<string>();
+
+                    NodeDataValue value1 = null;
+                    if (node.Data.ContainsKey("value1") && node.Data["value1"] is JObject value1Object)
+                    {
+                        value1 = value1Object.ToObject<NodeDataValue>();
+                    }
+                    NodeDataValue value2 = null;
+                    if (node.Data.ContainsKey("value2") && node.Data["value2"] is JObject value2Object)
+                    {
+                        value2 = value2Object.ToObject<NodeDataValue>();
+                    }
+
+                    Debug.Log(
+                        $"Finding modulo between {value1.Value} ({value1.Type}) and {value2.Value} ({value2.Type})"
+                    );
+
+                    var var1 = TryGetDataVariable(
+                        value1.Value,
+                        value1.IsCustom,
+                        prevResult,
+                        value1.Type
+                    );
+
+                    var var2 = TryGetDataVariable(
+                        value2.Value,
+                        value2.IsCustom,
+                        prevResult,
+                        value2.Type
+                    );
+
+                    if (var1.GetType() != typeof(double))
+                    {
+                        var1 = TryChangeDataType(var1, "number");
+                    }
+
+                    if (var2.GetType() != typeof(double))
+                    {
+                        var2 = TryChangeDataType(var2, "number");
+                    }
+
+                    double result = Convert.ToDouble(var1) % Convert.ToDouble(var2);
+
+                    return (object)result;
                 }
-                NodeDataValue value2 = null;
-                if (node.Data.ContainsKey("value2") && node.Data["value2"] is JObject value2Object)
+                catch (Exception ex)
                 {
-                    value2 = value2Object.ToObject<NodeDataValue>();
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
                 }
-
-                Debug.Log(
-                    $"Finding modulo between {value1.Value} ({value1.Type}) and {value2.Value} ({value2.Type})"
-                );
-
-                var var1 = TryGetDataVariable(
-                    value1.Value,
-                    value1.IsCustom,
-                    prevResult,
-                    value1.Type
-                );
-
-                var var2 = TryGetDataVariable(
-                    value2.Value,
-                    value2.IsCustom,
-                    prevResult,
-                    value2.Type
-                );
-
-                if (var1.GetType() != typeof(double))
-                {
-                    var1 = TryChangeDataType(var1, "number");
-                }
-
-                if (var2.GetType() != typeof(double))
-                {
-                    var2 = TryChangeDataType(var2, "number");
-                }
-
-                double result = Convert.ToDouble(var1) % Convert.ToDouble(var2);
-
-                return (object)result;
             }
 
             // ops_set
             object OpsSet(Node node, object prevResult)
             {
-                List<string> logging = new List<string>();
-
-                NodeDataValue fieldToSet = null;
-                if (node.Data.ContainsKey("fieldToSet") && node.Data["fieldToSet"] is JObject value1Object)
+                try
                 {
-                    fieldToSet = value1Object.ToObject<NodeDataValue>();
+                    List<string> logging = new List<string>();
+
+                    NodeDataValue fieldToSet = null;
+                    if (node.Data.ContainsKey("fieldToSet") && node.Data["fieldToSet"] is JObject value1Object)
+                    {
+                        fieldToSet = value1Object.ToObject<NodeDataValue>();
+                    }
+                    NodeDataValue value = null;
+                    if (node.Data.ContainsKey("value") && node.Data["value"] is JObject valueObject)
+                    {
+                        value = valueObject.ToObject<NodeDataValue>();
+                    }
+
+                    Debug.Log(
+                        $"Setting field {fieldToSet.Value} ({fieldToSet.Type}) to {value.Value} ({value.Type})"
+                    );
+
+                    var var1 = TryGetDataVariable(
+                        value.Value,
+                        value.IsCustom,
+                        prevResult,
+                        value.Type
+                    );
+                    var1 = TryChangeDataType(var1, fieldToSet.Type);
+
+                    SetVariableValue((string)fieldToSet.Value, var1);
+
+                    double result = Convert.ToDouble(var1);
+
+                    return (object)result;
                 }
-                NodeDataValue value = null;
-                if (node.Data.ContainsKey("value") && node.Data["value"] is JObject valueObject)
+                catch (Exception ex)
                 {
-                    value = valueObject.ToObject<NodeDataValue>();
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
                 }
-
-                Debug.Log(
-                    $"Setting field {fieldToSet.Value} ({fieldToSet.Type}) to {value.Value} ({value.Type})"
-                );
-
-                var var1 = TryGetDataVariable(
-                    value.Value,
-                    value.IsCustom,
-                    prevResult,
-                    value.Type
-                );
-                var1 = TryChangeDataType(var1, fieldToSet.Type);
-
-                SetVariableValue((string)fieldToSet.Value, var1);
-
-                double result = Convert.ToDouble(var1);
-
-                return (object)result;
             }
         }
     }

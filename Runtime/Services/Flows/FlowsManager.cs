@@ -136,7 +136,7 @@ namespace StrixSDK.Runtime
             }
         }
 
-        public void ExecuteCustomFlow(string customTriggerId)
+        public Dictionary<string, object> ExecuteCustomFlow(string customTriggerId)
         {
             Flow flow = _flows
             .First(f => f.Nodes.Data.ContainsKey("customID") && f.Nodes.Data["customID"].ToString() == customTriggerId);
@@ -144,14 +144,16 @@ namespace StrixSDK.Runtime
             if (flow == null)
             {
                 Debug.LogError($"Flow with customID {customTriggerId} was not found.");
-                return;
+                return new Dictionary<string, object>();
             }
 
             FlowExecution flowExecution = flowExecutionPool.GetObject();
 
-            flowExecution.ExecuteFlow(flow, null, null);
+            Dictionary<string, object> returnedVars = flowExecution.ExecuteFlow(flow, null, null);
 
             flowExecutionPool.ReturnObject(flowExecution);
+
+            return returnedVars;
         }
 
         public void ExecuteRegularFlow(string triggerId, Dictionary<string, object> contextualData)
@@ -375,7 +377,7 @@ namespace StrixSDK.Runtime
         /// <param name="contextualData">Data to append to local variables of the flow. For item added/removed this is an amount of items.</param>
         /// <param name="triggerNodeResult">The data that will be passed as a previous result to the initial node. For example, when item added/removed, that can be an amount
         /// of items added/removed, and this value will be a "return" from trigger node. Therefore, the second node in flow will be able to use it by param "Result of previous node".</param>
-        public void ExecuteFlow(Flow flow, Dictionary<string, object> contextualData, object triggerNodeResult)
+        public Dictionary<string, object> ExecuteFlow(Flow flow, Dictionary<string, object> contextualData, object triggerNodeResult)
         {
             flowSid = flow.Id;
 
@@ -387,6 +389,7 @@ namespace StrixSDK.Runtime
 
             // Execute flow starting from the root node
             ExecuteNode(flow.Nodes, triggerNodeResult);
+            return localVars;
         }
 
         public void ClearAfterPooling()
@@ -499,7 +502,8 @@ namespace StrixSDK.Runtime
             switch (targetType)
             {
                 case "number":
-                    return ConvertToSingle((string)variable);
+                case "variable": // We assume here that only numeric things can be variables for now
+                    return ConvertToSingle(variable.ToString());
 
                 case "boolean":
                 case "bool":
@@ -552,7 +556,7 @@ namespace StrixSDK.Runtime
                     }
                     catch
                     {
-                        throw new Exception("Wrong string-to-single format");
+                        throw new Exception($"Wrong string-to-single format: {e.Message}");
                     }
                 }
             }
@@ -585,7 +589,7 @@ namespace StrixSDK.Runtime
                     }
                     catch
                     {
-                        throw new Exception("Wrong string-to-double format");
+                        throw new Exception($"Wrong string-to-double format: {e.Message}");
                     }
                 }
             }
@@ -984,7 +988,7 @@ namespace StrixSDK.Runtime
                     Debug.Log($"Ceiling value {value.Value.ToString()} ({value.Type})");
 
                     var var1 = TryGetDataVariable(value.Value, value.IsCustom, prevResult, value.Type);
-                    var1 = ConvertToDouble((string)var1);
+                    var1 = ConvertToDouble(var1.ToString());
                     var result = Math.Ceiling((double)var1);
 
                     return result;
@@ -1001,16 +1005,16 @@ namespace StrixSDK.Runtime
             {
                 try
                 {
-                    NodeDataValue value1 = null;
-                    if (node.Data.ContainsKey("value1") && node.Data["value1"] is JObject value1Object)
+                    NodeDataValue value = null;
+                    if (node.Data.ContainsKey("value") && node.Data["value"] is JObject valueObject)
                     {
-                        value1 = value1Object.ToObject<NodeDataValue>();
+                        value = valueObject.ToObject<NodeDataValue>();
                     }
 
-                    Debug.Log($"Rounding value {node.Data["value"].ToString()} ({node.Data["valueType"]})");
+                    Debug.Log($"Rounding value {value.Value} ({value.Type})");
 
-                    var var1 = TryGetDataVariable(value1.Value, value1.IsCustom, prevResult, value1.Type);
-                    var1 = ConvertToDouble((string)var1);
+                    var var1 = TryGetDataVariable(value.Value, value.IsCustom, prevResult, value.Type);
+                    var1 = ConvertToDouble(var1.ToString());
                     var result = Math.Round((double)var1);
 
                     return result;
@@ -1040,9 +1044,9 @@ namespace StrixSDK.Runtime
                     Debug.Log($"Getting random value between {valueMin.Value} ({valueMin.Type}) and {valueMax.Value} ({valueMax.Type})");
 
                     var varMin = TryGetDataVariable(valueMin.Value, valueMin.IsCustom, prevResult, valueMin.Type);
-                    varMin = ConvertToSingle((string)varMin);
+                    varMin = ConvertToSingle(varMin.ToString());
                     var varMax = TryGetDataVariable(valueMax.Value, valueMax.IsCustom, prevResult, valueMax.Type);
-                    varMax = ConvertToSingle((string)varMax);
+                    varMax = ConvertToSingle(varMax.ToString());
 
                     var result = UnityEngine.Random.Range((float)varMin, (float)varMax);
 
@@ -1069,7 +1073,7 @@ namespace StrixSDK.Runtime
                     Debug.Log($"Flooring value {value.Value} ({value.Type})");
 
                     var var1 = TryGetDataVariable(value.Value, value.IsCustom, prevResult, value.Type);
-                    var1 = ConvertToSingle((string)var1);
+                    var1 = ConvertToSingle(var1.ToString());
 
                     var result = Mathf.FloorToInt((float)var1);
 
@@ -1106,11 +1110,11 @@ namespace StrixSDK.Runtime
                     Debug.Log($"Clamping value {value.Value} ({value.Type}) between {valueMin.Value} ({valueMin.Type}) and {valueMax.Value} ({valueMax.Type})");
 
                     var var1 = TryGetDataVariable(value.Value, value.IsCustom, prevResult, value.Type);
-                    var1 = ConvertToSingle((string)var1);
+                    var1 = ConvertToSingle(var1.ToString());
                     var varMin = TryGetDataVariable(valueMin.Value, valueMin.IsCustom, prevResult, valueMin.Type);
-                    varMin = ConvertToSingle((string)varMin);
+                    varMin = ConvertToSingle(varMin.ToString());
                     var varMax = TryGetDataVariable(valueMax.Value, valueMax.IsCustom, prevResult, valueMax.Type);
-                    varMax = ConvertToSingle((string)varMax);
+                    varMax = ConvertToSingle(varMax.ToString());
 
                     var result = Mathf.Clamp((float)var1, (float)varMin, (float)varMax);
 
@@ -2126,7 +2130,7 @@ namespace StrixSDK.Runtime
 
                     SetVariableValue((string)fieldToSet.Value, var1);
 
-                    double result = Convert.ToDouble(var1);
+                    var result = var1;
 
                     return (object)result;
                 }

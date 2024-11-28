@@ -82,7 +82,7 @@ namespace StrixSDK.Runtime
             TranslationItem translationItem = localizationItem.Items.FirstOrDefault(i => i.Code == locale);
             if (translationItem == null)
             {
-                Debug.Log($"No translation found for locale '{locale}'. Fallback to 'en' locale was made...");
+                Debug.LogWarning($"No translation found for locale '{locale}'. Fallback to 'en' locale was made...");
                 // Fallback to default language (English)
                 translationItem = localizationItem.Items.FirstOrDefault(i => i.Code == "en");
             }

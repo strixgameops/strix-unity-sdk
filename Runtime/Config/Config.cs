@@ -8,6 +8,7 @@ namespace StrixSDK.Runtime.Config
         public string apiKey;
         public string branch = "development";
         public bool fetchUpdatesInRealTime = false;
+        public bool showDebugLogs = false;
 
         private static StrixSDKConfig instance;
 

@@ -83,7 +83,7 @@ namespace StrixSDK.Runtime
         {
             if (IsInitialized())
             {
-                Debug.Log($"IAP systemis not initialized!");
+                Debug.LogError($"IAP systemis not initialized!");
                 return;
             }
             // Init unity services if they aren't yet
@@ -93,14 +93,14 @@ namespace StrixSDK.Runtime
             foreach (var productID in productIDs)
             {
                 builder.AddProduct(productID, ProductType.Consumable);
-                Debug.Log($"Adding product {productID} to catalog");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Adding product {productID} to catalog");
             }
-            Debug.Log($"Builder products total: {builder.products.Count}");
+            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Builder products total: {builder.products.Count}");
 
             try
             {
                 UnityPurchasing.Initialize(this, builder);
-                Debug.Log("UnityPurchasing Initialize called");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("UnityPurchasing Initialize called");
             }
             catch (System.Exception e)
             {
@@ -117,14 +117,14 @@ namespace StrixSDK.Runtime
             foreach (var productID in productIDs)
             {
                 builder.AddProduct(productID, ProductType.Consumable);
-                Debug.Log($"Updating IAPManager: Adding product {productID} to catalog");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Updating IAPManager: Adding product {productID} to catalog");
             }
-            Debug.Log($"Updating IAPManager: Builder products total: {builder.products.Count}");
+            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Updating IAPManager: Builder products total: {builder.products.Count}");
 
             try
             {
                 UnityPurchasing.Initialize(this, builder);
-                Debug.Log("Updating IAPManager: UnityPurchasing Initialize called");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Updating IAPManager: UnityPurchasing Initialize called");
             }
             catch (System.Exception e)
             {
@@ -144,7 +144,7 @@ namespace StrixSDK.Runtime
 #else
                                 .SetEnvironmentName("production");
 #endif
-                    await UnityServices.InitializeAsync(options).ContinueWith(task => Debug.Log("Unity Gaming Service successfully initialized!"));
+                    await UnityServices.InitializeAsync(options).ContinueWith(task => StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Unity Gaming Service successfully initialized!"));
                     return true;
                 }
                 catch (Exception e)
@@ -155,7 +155,7 @@ namespace StrixSDK.Runtime
             }
             else
             {
-                Debug.Log("Unity Gaming Service already initialized!");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Unity Gaming Service already initialized!");
                 return true;
             }
         }
@@ -163,7 +163,7 @@ namespace StrixSDK.Runtime
         private bool IsInitialized()
         {
             bool initialized = controller != null && extensions != null;
-            Debug.Log($"IAPManager: IsInitialized: {initialized}. Controller is {controller}, extensions are {extensions}");
+            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"IAPManager: IsInitialized: {initialized}. Controller is {controller}, extensions are {extensions}");
             return initialized;
         }
 
@@ -172,7 +172,7 @@ namespace StrixSDK.Runtime
         /// </summary>
         public void OnInitialized(IStoreController c, IExtensionProvider e)
         {
-            Debug.Log("OnInitialized: Purchasing initialized successfully.");
+            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("OnInitialized: Purchasing initialized successfully.");
             controller = c;
             extensions = e;
             IsInitialized();
@@ -183,22 +183,22 @@ namespace StrixSDK.Runtime
         /// </summary>
         public void OnPurchaseFailed(Product product, PurchaseFailureReason error)
         {
-            Debug.Log($"OnPurchaseFailed: FAIL. Product: '{product.definition.storeSpecificId}', PurchaseFailureReason: {error}");
+            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"OnPurchaseFailed: FAIL. Product: '{product.definition.storeSpecificId}', PurchaseFailureReason: {error}");
         }
 
         public void OnInitializeFailed(InitializationFailureReason error)
         {
-            Debug.Log($"OnInitializeFailed InitializationFailureReason: {error}");
+            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"OnInitializeFailed InitializationFailureReason: {error}");
         }
 
         public void OnInitializeFailed(InitializationFailureReason error, string message)
         {
-            Debug.Log($"OnPurchaseFailed: {error}. PurchaseFailureReason: {message}");
+            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"OnPurchaseFailed: {error}. PurchaseFailureReason: {message}");
         }
 
         public async Task<string> CallBuyIAP(string productId)
         {
-            Debug.Log($"Buying: {productId}. IAPManager initialized? {IsInitialized()}");
+            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Buying: {productId}. IAPManager initialized? {IsInitialized()}");
             if (IsInitialized())
             {
                 Product product = controller.products.WithID(productId);
@@ -211,7 +211,7 @@ namespace StrixSDK.Runtime
                         return null;
                     }
 
-                    Debug.Log($"Purchasing product asychronously: {product.definition.id}");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Purchasing product asychronously: {product.definition.id}");
 
                     currentlyProcessedProductId = productId;
                     purchaseTaskCompletionSource = new TaskCompletionSource<string>();
@@ -221,13 +221,13 @@ namespace StrixSDK.Runtime
                 }
                 else
                 {
-                    Debug.Log("Purchase failed: Not purchasing product, either is not found or is not available for purchase");
+                    Debug.LogError("Purchase failed: Not purchasing product, either is not found or is not available for purchase");
                     return null;
                 }
             }
             else
             {
-                Debug.Log("Purchase failed: Not initialized.");
+                Debug.LogError("Purchase failed: Not initialized.");
                 return null;
             }
         }
@@ -242,7 +242,7 @@ namespace StrixSDK.Runtime
             if (e.purchasedProduct.definition.id == currentlyProcessedProductId)
             {
                 string receipt = e.purchasedProduct.receipt;
-                Debug.Log($"Purchase successful. Receipt: {receipt}");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Purchase successful. Receipt: {receipt}");
                 purchaseTaskCompletionSource?.SetResult(receipt);
             }
             else
@@ -250,7 +250,7 @@ namespace StrixSDK.Runtime
                 Debug.LogError($"'currentlyProcessedProductId' changed during In-App Purchasing. Purchase was processed for product: '{e.purchasedProduct.definition.id}', but we expected '{currentlyProcessedProductId}' ");
                 purchaseTaskCompletionSource?.SetResult(null);
             }
-            Debug.Log($"Purchase processed: {e}");
+            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Purchase processed: {e}");
             return PurchaseProcessingResult.Complete;
         }
 
@@ -262,7 +262,7 @@ namespace StrixSDK.Runtime
 
         void IDetailedStoreListener.OnPurchaseFailed(Product product, PurchaseFailureDescription failureDescription)
         {
-            Debug.Log($"Purchase failed. Product: {product.definition.id}. Description: {failureDescription}");
+            Debug.LogError($"Purchase failed. Product: {product.definition.id}. Description: {failureDescription}");
             purchaseTaskCompletionSource?.SetResult(null);
         }
     }

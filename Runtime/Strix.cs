@@ -33,11 +33,11 @@ namespace StrixSDK
             {
                 if (_instance == null)
                 {
-                    Debug.Log("Strix instance is null, attempting to find or create it.");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Strix instance is null, attempting to find or create it.");
                     _instance = FindObjectOfType<Strix>();
                     if (_instance == null)
                     {
-                        Debug.Log("Strix not found in the scene, creating a new instance.");
+                        StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Strix not found in the scene, creating a new instance.");
                         GameObject obj = new GameObject();
                         _instance = obj.AddComponent<Strix>();
                         obj.name = typeof(Strix).ToString();
@@ -119,7 +119,7 @@ namespace StrixSDK
 
         private static async Task<bool> InitSDK(string clientId)
         {
-            Debug.Log("Calling InitSDK");
+            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Calling InitSDK");
             // Loading config file
             StrixSDKConfig config = StrixSDKConfig.Instance;
             if (string.IsNullOrEmpty(config.apiKey))
@@ -149,7 +149,7 @@ namespace StrixSDK
                 var versionCheckResponse = JsonConvert.DeserializeObject<M_SDKVersionCheckResponse>(versionCheck);
                 if (versionCheckResponse.IsGood)
                 {
-                    Debug.Log($"{versionCheckResponse.Message}");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"{versionCheckResponse.Message}");
                 }
                 else
                 {
@@ -161,7 +161,7 @@ namespace StrixSDK
                 Analytics analyticsInstance = Analytics.Instance;
 
                 // We need to send newSession event and get the key we will use to access db
-                Debug.Log($"Sending initial analytics event.");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Sending initial analytics event.");
                 var result = await Analytics.SendNewSessionEvent(null);
 
                 if (!string.IsNullOrEmpty(result))
@@ -182,7 +182,7 @@ namespace StrixSDK
 #if UNITY_ANDROID
                     if (!config.fetchUpdatesInRealTime)
                     {
-                        Debug.Log("Fetching content for StrixSDK");
+                        StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Fetching content for StrixSDK");
                         await ContentFetcher.Instance.UpdateContentByTypes(new List<string>() {
                             "entities",
                             "localization",
@@ -195,7 +195,7 @@ namespace StrixSDK
                     }
 #else
                     // Just do this in case we would like other platforms to automatically fetch content on initialization.
-                    Debug.Log("Fetching content for StrixSDK");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Fetching content for StrixSDK");
                     await ContentFetcher.Instance.UpdateContentByTypes(new List<string>() {
                          "entities",
                          "localization",
@@ -208,38 +208,38 @@ namespace StrixSDK
 #endif
 
                     //// Initialize PlayerWarehouse elements for current player
-                    Debug.Log("Starting PlayerManager initialization...");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Starting PlayerManager initialization...");
                     PlayerManager playerManagerInstance = PlayerManager.Instance;
                     bool warehouseInit = playerManagerInstance.Initialize(responseObj.Data.PlayerData);
-                    Debug.Log("PlayerManager initialization finished.");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("PlayerManager initialization finished.");
 
                     //// Initialize Entities
-                    Debug.Log("Starting EntityManager initialization...");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Starting EntityManager initialization...");
                     EntityManager entityManagerInstance = EntityManager.Instance;
                     bool entitiesInit = entityManagerInstance.Initialize();
-                    Debug.Log("EntityManager initialization finished.");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("EntityManager initialization finished.");
 
                     //// Initialize offers manager
-                    Debug.Log("Starting OffersManager initialization...");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Starting OffersManager initialization...");
                     OffersManager offersManagerInstance = OffersManager.Instance;
                     bool offersInit = offersManagerInstance.Initialize();
-                    Debug.Log("OffersManager initialization finished.");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("OffersManager initialization finished.");
 
                     //// Initialize flows manager
-                    Debug.Log("Starting FlowsManager initialization...");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Starting FlowsManager initialization...");
                     FlowsManager flowsManagerInstance = FlowsManager.Instance;
                     bool flowsInit = flowsManagerInstance.Initialize();
-                    Debug.Log("FlowsManager initialization finished.");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("FlowsManager initialization finished.");
 
 #if UNITY_ANDROID
                     if (transactionsInit && offersInit && entitiesInit && warehouseInit)
                     {
-                        Debug.Log("StrixSDK initialized successfuly!");
+                        StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("StrixSDK initialized successfuly!");
                         return true;
                     }
                     else
                     {
-                        Debug.Log($"Error while initializing StrixSDK. " +
+                        Debug.LogError($"Error while initializing StrixSDK. " +
                             $"\n Initialization results: " +
                             $"OffersManager={offersInit}." +
                             $"EntityManager={entitiesInit}." +
@@ -252,12 +252,12 @@ namespace StrixSDK
 #else
                     if (offersInit && entitiesInit && warehouseInit)
                     {
-                        Debug.Log("StrixSDK initialized successfuly!");
+                        StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("StrixSDK initialized successfuly!");
                         return true;
                     }
                     else
                     {
-                        Debug.Log($"Error while initializing StrixSDK. " +
+                        Debug.LogError($"Error while initializing StrixSDK. " +
                             $"\n Initialization results: " +
                             $"OffersManager={offersInit}." +
                             $"EntityManager={entitiesInit}." +
@@ -288,28 +288,28 @@ namespace StrixSDK
             try
             {
                 //// Initialize PlayerWarehouse elements for current player
-                Debug.Log("Starting PlayerManager initialization...");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Starting PlayerManager initialization...");
                 PlayerManager playerManagerInstance = PlayerManager.Instance;
                 bool warehouseInit = playerManagerInstance.Initialize(null);
-                Debug.Log("PlayerManager initialization finished.");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("PlayerManager initialization finished.");
 
                 //// Initialize Entities
-                Debug.Log("Starting EntityManager initialization...");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Starting EntityManager initialization...");
                 EntityManager entityManagerInstance = EntityManager.Instance;
                 bool entitiesInit = entityManagerInstance.Initialize();
-                Debug.Log("EntityManager initialization finished.");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("EntityManager initialization finished.");
 
                 //// Initialize offers manager
-                Debug.Log("Starting OffersManager initialization...");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Starting OffersManager initialization...");
                 OffersManager offersManagerInstance = OffersManager.Instance;
                 bool offersInit = offersManagerInstance.Initialize();
-                Debug.Log("OffersManager initialization finished.");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("OffersManager initialization finished.");
 
                 //// Initialize flows manager
-                Debug.Log("Starting FlowsManager initialization...");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Starting FlowsManager initialization...");
                 FlowsManager flowsManagerInstance = FlowsManager.Instance;
                 bool flowsInit = flowsManagerInstance.Initialize();
-                Debug.Log("FlowsManager initialization finished.");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("FlowsManager initialization finished.");
             }
             catch (Exception ex)
             {
@@ -317,8 +317,9 @@ namespace StrixSDK
             }
         }
 
-        private void Awake()
+        private async void Awake()
         {
+            Debug.Log($"Aboba");
             if (_instance == null)
             {
                 _instance = this;
@@ -328,6 +329,7 @@ namespace StrixSDK
             {
                 Destroy(gameObject);
             }
+            await Initialize();
         }
     }
 }

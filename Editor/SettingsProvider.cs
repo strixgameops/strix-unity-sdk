@@ -33,6 +33,10 @@ public static class StrixSettingsProvider
                     config.fetchUpdatesInRealTime = EditorGUILayout.Toggle("Let players refetch new content in real-time", config.fetchUpdatesInRealTime, GUILayout.ExpandWidth(true));
                     EditorGUIUtility.labelWidth = originalValue;
 
+                    EditorGUIUtility.labelWidth = 110;
+                    config.showDebugLogs = EditorGUILayout.Toggle("Show debug logs", config.showDebugLogs, GUILayout.ExpandWidth(true));
+                    EditorGUIUtility.labelWidth = originalValue;
+
                     if (EditorGUI.EndChangeCheck())
                     {
                         EditorUtility.SetDirty(config);

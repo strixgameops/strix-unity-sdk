@@ -18,7 +18,7 @@ namespace StrixSDK
         public bool IsCurrency { get; set; }
 
         [JsonProperty("isInAppPurchase")]
-        public string IsInAppPurchase { get; set; }
+        public bool IsInAppPurchase { get; set; }
 
         [JsonProperty("parent")]
         public string ParentNodeId { get; set; }

@@ -32,7 +32,7 @@ namespace StrixSDK.Runtime.Service
                         var healthCheckResponse = await _client.GetAsync(apiEndpoint);
                         if (healthCheckResponse.IsSuccessStatusCode)
                         {
-                            Debug.Log("Reach check succeeded, resending cached events.");
+                            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Reach check succeeded, resending cached events.");
                             networkAvailable = true;
 
                             // Wait 5 seconds to prevent behavior where it's something wrong with the request builder or backend server,
@@ -44,7 +44,7 @@ namespace StrixSDK.Runtime.Service
                                 bool eventsSent = await Analytics.TryToResendFailedEvents();
                                 if (!eventsSent)
                                 {
-                                    Debug.Log("Failed to resend events, retrying in 30 seconds.");
+                                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Failed to resend events, retrying in 30 seconds.");
                                     networkAvailable = false; // Set networkAvailable to false to continue the retry loop
                                     await Task.Delay(30000); // Wait for 30 seconds before retrying
                                 }
@@ -52,12 +52,12 @@ namespace StrixSDK.Runtime.Service
                         }
                         else
                         {
-                            Debug.Log("Reach check failed, retrying in 30 seconds.");
+                            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Reach check failed, retrying in 30 seconds.");
                         }
                     }
                     catch (Exception ex)
                     {
-                        Debug.Log($"Reach check failed with exception: {ex.Message}, retrying in 30 seconds.");
+                        StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Reach check failed with exception: {ex.Message}, retrying in 30 seconds.");
                     }
 
                     if (!networkAvailable)

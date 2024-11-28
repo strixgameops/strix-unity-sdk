@@ -126,7 +126,7 @@ namespace StrixSDK.Runtime.Db
                             int remoteChecksum = Convert.ToInt32(field.Value);
                             int storedChecksum = Content.GetCacheChecksum(field.Key);
 
-                            Debug.Log($"Comparing checksums for '{field.Key}'. Remote: {remoteChecksum}, Local: {storedChecksum}");
+                            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Comparing checksums for '{field.Key}'. Remote: {remoteChecksum}, Local: {storedChecksum}");
 
                             if (remoteChecksum != storedChecksum || storedChecksum == -1)
                             {
@@ -135,7 +135,7 @@ namespace StrixSDK.Runtime.Db
                             }
                             else
                             {
-                                Debug.Log($"Table '{field.Key}' is up to date!");
+                                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Table '{field.Key}' is up to date!");
                             }
                         }
                     }
@@ -327,7 +327,7 @@ namespace StrixSDK.Runtime.Db
                         {
                             // If the file exists, update the segment value to the hash directly
                             flowNode.Data["value"] = fileName;
-                            Debug.Log($"File {fileName} already exists in cache, skipping download.");
+                            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"File {fileName} already exists in cache, skipping download.");
                         }
                         else
                         {
@@ -372,7 +372,7 @@ namespace StrixSDK.Runtime.Db
                             {
                                 // If the file exists, update the segment value to the hash directly
                                 segment.Value = fileName;
-                                Debug.Log($"File {fileName} already exists in cache, skipping download.");
+                                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"File {fileName} already exists in cache, skipping download.");
                             }
                             else
                             {
@@ -411,7 +411,7 @@ namespace StrixSDK.Runtime.Db
                 {
                     // If the file exists, update the offer icon to the hash directly
                     offer["icon"] = fileName;
-                    Debug.Log($"File {fileName} already exists in cache, skipping download.");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"File {fileName} already exists in cache, skipping download.");
                 }
                 else
                 {

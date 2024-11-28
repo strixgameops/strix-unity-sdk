@@ -38,7 +38,7 @@ namespace StrixSDK
         {
             if (!Strix.IsInitialized)
             {
-                Debug.Log($"StrixSDK isn't initialized. Offers system is not available.");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"StrixSDK isn't initialized. Offers system is not available.");
                 Destroy(gameObject);
             }
             OffersHelperMethods.OnOffersTriggered += InvokeTriggeredOffers;
@@ -105,7 +105,8 @@ namespace StrixSDK
         }
 
         /// <summary>
-        /// Returns all offers, even those the user cannot access normally. Though the offers may be retrieved, other calls to them as like "BuyOffer" will fail.
+        /// Returns all offers, even those that user has no access due to segment restrictions.
+        /// Though the offers may be retrieved, other calls to them as like "BuyOffer" will fail.
         /// </summary>
         public static Offer[] GetAllOffers(bool forceAllOffers)
         {

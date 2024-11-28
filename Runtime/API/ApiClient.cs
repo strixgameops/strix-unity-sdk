@@ -50,7 +50,7 @@ namespace StrixSDK.Runtime.APIClient
                 }
                 else
                 {
-                    //Debug.Log($"Response from {req.url}: {req.downloadHandler.text}");
+                    //StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Response from {req.url}: {req.downloadHandler.text}");
                     return req.downloadHandler.text;
                 }
             }

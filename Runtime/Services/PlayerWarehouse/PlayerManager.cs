@@ -87,11 +87,11 @@ namespace StrixSDK.Runtime
                     testsList.Add(test);
                 }
                 _abTests = testsList.ToArray();
-                Debug.Log($"Fetched {_abTests.Length} currently ongoing AB tests");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Fetched {_abTests.Length} currently ongoing AB tests");
             }
             else
             {
-                Debug.Log($"Could not fetch AB tests from persistent storage");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Could not fetch AB tests from persistent storage");
             }
         }
     }
@@ -762,7 +762,7 @@ namespace StrixSDK.Runtime
                         {
                             FlowsManager.Instance.ExecuteRegularFlow("t_segmentExit", null);
                             PlayerManager.Instance._playerData.Segments.Remove(segmentId);
-                            Debug.Log($"Changed (removed) player segment '{segmentId}'");
+                            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Changed (removed) player segment '{segmentId}'");
                         }
                     }
                     break;
@@ -773,7 +773,7 @@ namespace StrixSDK.Runtime
                         {
                             FlowsManager.Instance.ExecuteRegularFlow("t_segmentExit", null);
                             PlayerManager.Instance._playerData.Segments.Add(segmentId);
-                            Debug.Log($"Changed (added) player segment '{segmentId}'");
+                            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Changed (added) player segment '{segmentId}'");
                         }
                     }
                     break;

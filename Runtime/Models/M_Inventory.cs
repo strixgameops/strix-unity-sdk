@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using System.Collections.Generic;
 
-namespace StrixSDK.Runtime.Models
+namespace StrixSDK
 {
     public class InventoryItem
     {

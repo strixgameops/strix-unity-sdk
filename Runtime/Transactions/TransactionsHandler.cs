@@ -92,7 +92,7 @@ namespace StrixSDK.Runtime.Db
             {
                 if (FCMToken == null || FCMToken != e.Token)
                 {
-                    Debug.Log($"FCM token received: {e.Token}");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"FCM token received: {e.Token}");
                     FCMToken = e.Token;
 
                     if (e.Token == null)
@@ -126,11 +126,11 @@ namespace StrixSDK.Runtime.Db
 
         public void OnMessageReceived(object sender, Firebase.Messaging.MessageReceivedEventArgs e)
         {
-            Debug.Log("FCM Message: " + e.Message.Data);
+            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("FCM Message: " + e.Message.Data);
 
             // Assuming e.Message.Data is a JSON string, parse it into a dictionary of string, string first
             var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(JsonConvert.SerializeObject(e.Message.Data));
-            Debug.Log($"FCM Message stringified: {JsonConvert.SerializeObject(e.Message.Data)}");
+            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"FCM Message stringified: {JsonConvert.SerializeObject(e.Message.Data)}");
             if (data != null)
             {
                 switch (data["type"])
@@ -149,7 +149,7 @@ namespace StrixSDK.Runtime.Db
                             int remoteChecksum = Convert.ToInt32(field.Value);
                             int storedChecksum = Content.GetCacheChecksum(field.Key);
 
-                            Debug.Log($"Comparing checksums for '{field.Key}'. Remote: {remoteChecksum}, Local: {storedChecksum}");
+                            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Comparing checksums for '{field.Key}'. Remote: {remoteChecksum}, Local: {storedChecksum}");
 
                             if (remoteChecksum != storedChecksum || storedChecksum == -1)
                             {
@@ -158,7 +158,7 @@ namespace StrixSDK.Runtime.Db
                             }
                             else
                             {
-                                Debug.Log($"Table '{field.Key}' is up to date!");
+                                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Table '{field.Key}' is up to date!");
                             }
                         }
 
@@ -198,7 +198,7 @@ namespace StrixSDK.Runtime.Db
 
                 if (response != null)
                 {
-                    Debug.Log("Token successfully sent to backend.");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Token successfully sent to backend.");
                 }
             }
             catch (Exception ex)

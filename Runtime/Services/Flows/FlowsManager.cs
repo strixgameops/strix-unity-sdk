@@ -61,7 +61,7 @@ namespace StrixSDK.Runtime
             // Initialize pool obj for flow execution
             GameObject flowExecutionPoolObject = new GameObject("FlowExecutionPool");
             flowExecutionPool = flowExecutionPoolObject.AddComponent<FlowExecutionPool>();
-            Debug.Log("FlowExecutionPool created successfully.");
+            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("FlowExecutionPool created successfully.");
         }
 
         public void RefreshFlows()
@@ -80,11 +80,11 @@ namespace StrixSDK.Runtime
                 }
 
                 _flows = flowsList.ToArray();
-                Debug.Log($"Fetched {_flows.Length} flows");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Fetched {_flows.Length} flows");
             }
             else
             {
-                Debug.Log($"Could not fetch flows from persistent storage");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Could not fetch flows from persistent storage");
             }
         }
 
@@ -385,7 +385,7 @@ namespace StrixSDK.Runtime
 
             // Populate variables
             PopulateVariables(contextualData);
-            Debug.Log("Populated variables: " + variablesValues.Count);
+            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Populated variables: " + variablesValues.Count);
 
             // Execute flow starting from the root node
             ExecuteNode(flow.Nodes, triggerNodeResult);
@@ -602,7 +602,7 @@ namespace StrixSDK.Runtime
         {
             try
             {
-                Debug.Log($"Started executing node {node.Id}");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Started executing node {node.Id}");
 
                 // Process node
                 var result = func(node, prevResult);
@@ -842,7 +842,7 @@ namespace StrixSDK.Runtime
             {
                 try
                 {
-                    Debug.Log($"Trigger config \"{_entityConfig.Id}\"");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Trigger config \"{_entityConfig.Id}\"");
                     var result = true;
                     return result;
                 }
@@ -889,7 +889,7 @@ namespace StrixSDK.Runtime
                 try
                 {
                     Offer offer = OffersManager.Instance._offers.First(o => o.InternalId == (string)node.Data["offerID"]);
-                    Debug.Log($"Trigger offer: {offer.Name}");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Trigger offer: {offer.Name}");
 
                     variablesValues.Add(new VariableValue { Id = "offerIcon", Value = offer.Icon });
                     variablesValues.Add(new VariableValue { Id = "offerPrice", Value = offer.Price.Value });
@@ -957,7 +957,7 @@ namespace StrixSDK.Runtime
                 try
                 {
                     Offer offer = OffersManager.Instance._offers.First(o => o.InternalId == (string)node.Data["offerID"]);
-                    Debug.Log($"Trigger offer: {offer.Name}");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Trigger offer: {offer.Name}");
 
                     variablesValues.Add(new VariableValue { Id = "offerIcon", Value = offer.Icon });
                     variablesValues.Add(new VariableValue { Id = "offerPrice", Value = offer.Price.Value });
@@ -985,7 +985,7 @@ namespace StrixSDK.Runtime
                         value = valueObject.ToObject<NodeDataValue>();
                     }
 
-                    Debug.Log($"Ceiling value {value.Value.ToString()} ({value.Type})");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Ceiling value {value.Value.ToString()} ({value.Type})");
 
                     var var1 = TryGetDataVariable(value.Value, value.IsCustom, prevResult, value.Type);
                     var1 = ConvertToDouble(var1.ToString());
@@ -1011,7 +1011,7 @@ namespace StrixSDK.Runtime
                         value = valueObject.ToObject<NodeDataValue>();
                     }
 
-                    Debug.Log($"Rounding value {value.Value} ({value.Type})");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Rounding value {value.Value} ({value.Type})");
 
                     var var1 = TryGetDataVariable(value.Value, value.IsCustom, prevResult, value.Type);
                     var1 = ConvertToDouble(var1.ToString());
@@ -1041,7 +1041,7 @@ namespace StrixSDK.Runtime
                     {
                         valueMax = valueMaxObject.ToObject<NodeDataValue>();
                     }
-                    Debug.Log($"Getting random value between {valueMin.Value} ({valueMin.Type}) and {valueMax.Value} ({valueMax.Type})");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Getting random value between {valueMin.Value} ({valueMin.Type}) and {valueMax.Value} ({valueMax.Type})");
 
                     var varMin = TryGetDataVariable(valueMin.Value, valueMin.IsCustom, prevResult, valueMin.Type);
                     varMin = ConvertToSingle(varMin.ToString());
@@ -1070,7 +1070,7 @@ namespace StrixSDK.Runtime
                         value = valueObject.ToObject<NodeDataValue>();
                     }
 
-                    Debug.Log($"Flooring value {value.Value} ({value.Type})");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Flooring value {value.Value} ({value.Type})");
 
                     var var1 = TryGetDataVariable(value.Value, value.IsCustom, prevResult, value.Type);
                     var1 = ConvertToSingle(var1.ToString());
@@ -1107,7 +1107,7 @@ namespace StrixSDK.Runtime
                         valueMax = valueMaxObject.ToObject<NodeDataValue>();
                     }
 
-                    Debug.Log($"Clamping value {value.Value} ({value.Type}) between {valueMin.Value} ({valueMin.Type}) and {valueMax.Value} ({valueMax.Type})");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Clamping value {value.Value} ({value.Type}) between {valueMin.Value} ({valueMin.Type}) and {valueMax.Value} ({valueMax.Type})");
 
                     var var1 = TryGetDataVariable(value.Value, value.IsCustom, prevResult, value.Type);
                     var1 = ConvertToSingle(var1.ToString());
@@ -1147,7 +1147,7 @@ namespace StrixSDK.Runtime
                     }
                     _ = Analytics.SendCustomEvent((string)node.Data["eventID"], customData);
 
-                    Debug.Log($"Event with ID \"{node.Data["eventID"]}\" was sent with {customDataObj.Count} additional custom fields.");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Event with ID \"{node.Data["eventID"]}\" was sent with {customDataObj.Count} additional custom fields.");
                     var result = true;
                     return result;
                 }
@@ -1218,7 +1218,7 @@ namespace StrixSDK.Runtime
 
                     OffersHelperMethods.InvokeTriggeredOffers(offers);
 
-                    Debug.Log($"Offer with ID \"{node.Data["offerID"]}\" should be returned in the event \"OnOffersTriggered\" by now.");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Offer with ID \"{node.Data["offerID"]}\" should be returned in the event \"OnOffersTriggered\" by now.");
                     var result = true;
                     return result;
                 }
@@ -1241,7 +1241,7 @@ namespace StrixSDK.Runtime
                     }
                     else
                     {
-                        Debug.Log($"Could not call custom flow. ID to call was null or empty.");
+                        StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Could not call custom flow. ID to call was null or empty.");
                         result = false;
                     }
 
@@ -1354,7 +1354,7 @@ namespace StrixSDK.Runtime
                     _ = Client.Req(API.BackendAction, body);
                     WarehouseHelperMethods.RemoveSegmentFromPlayer((string)node.Data["segmentID"]);
 
-                    Debug.Log($"Removing segment \"{node.Data["segmentID"]}\" from player");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Removing segment \"{node.Data["segmentID"]}\" from player");
                     var result = true;
                     return result;
                 }
@@ -1397,7 +1397,7 @@ namespace StrixSDK.Runtime
                     _ = Client.Req(API.BackendAction, body);
                     WarehouseHelperMethods.AddSegmentToPlayer((string)node.Data["segmentID"]);
 
-                    Debug.Log($"Adding segment \"{node.Data["segmentID"]}\" to player");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Adding segment \"{node.Data["segmentID"]}\" to player");
                     var result = true;
                     return result;
                 }
@@ -1533,13 +1533,13 @@ namespace StrixSDK.Runtime
                         {
                             if (var1.ToString() == cases[i].Type)
                             {
-                                Debug.Log($"Switching on field {field.Value} with value \"{var1}\". Case \"{cases[i].Type}\": true");
+                                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Switching on field {field.Value} with value \"{var1}\". Case \"{cases[i].Type}\": true");
                                 result = i;
                                 return result;
                             }
                             else
                             {
-                                Debug.Log($"Switching on field {field.Value} with value \"{var1}\". Case \"{cases[i].Type}\": false");
+                                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Switching on field {field.Value} with value \"{var1}\". Case \"{cases[i].Type}\": false");
                             }
                         }
                     }
@@ -1610,7 +1610,7 @@ namespace StrixSDK.Runtime
                                 {
                                     result = false;
                                 }
-                                Debug.Log($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {var1.Equals(var2)}");
+                                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {var1.Equals(var2)}");
                                 break;
 
                             case "!=":
@@ -1618,7 +1618,7 @@ namespace StrixSDK.Runtime
                                 {
                                     result = false;
                                 }
-                                Debug.Log($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {var1.Equals(var2)}");
+                                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {var1.Equals(var2)}");
                                 break;
 
                             case "includes":
@@ -1626,7 +1626,7 @@ namespace StrixSDK.Runtime
                                 {
                                     result = false;
                                 }
-                                Debug.Log($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {((string)var1).Contains((string)var2)}");
+                                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {((string)var1).Contains((string)var2)}");
                                 break;
 
                             case ">":
@@ -1634,7 +1634,7 @@ namespace StrixSDK.Runtime
                                 {
                                     result = false;
                                 }
-                                Debug.Log($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {(double)var1 > (double)var2}");
+                                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {(double)var1 > (double)var2}");
                                 break;
 
                             case "<":
@@ -1642,7 +1642,7 @@ namespace StrixSDK.Runtime
                                 {
                                     result = false;
                                 }
-                                Debug.Log($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {(double)var1 < (double)var2}");
+                                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {(double)var1 < (double)var2}");
                                 break;
 
                             case ">=":
@@ -1650,7 +1650,7 @@ namespace StrixSDK.Runtime
                                 {
                                     result = false;
                                 }
-                                Debug.Log($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {(double)var1 >= (double)var2}");
+                                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {(double)var1 >= (double)var2}");
                                 break;
 
                             case "<=":
@@ -1658,7 +1658,7 @@ namespace StrixSDK.Runtime
                                 {
                                     result = false;
                                 }
-                                Debug.Log($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {(double)var1 <= (double)var2}");
+                                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Condition: {var1} ({var1.GetType()}) {cond.Operator} {var2} ({var2.GetType()}). Result: {(double)var1 <= (double)var2}");
                                 break;
                         }
                     }
@@ -1704,7 +1704,7 @@ namespace StrixSDK.Runtime
                         string segmentId = $"flow_{flowSid}_splitTest_{node.Sid}_{splits[i].Sid}";
                         if (PlayerManager.Instance._playerData.Segments.Contains(segmentId))
                         {
-                            Debug.Log($"Split number: {numbers[i]}");
+                            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Split number: {numbers[i]}");
                             return (object)numbers[i]; // Pick path if split-segment is already present
                         }
                     }
@@ -1742,7 +1742,7 @@ namespace StrixSDK.Runtime
                             _ = Client.Req(API.BackendAction, body);
                             WarehouseHelperMethods.AddSegmentToPlayer(segmentId);
 
-                            Debug.Log($"Choosing random audience path. Path {numbers[i]} was chosen");
+                            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Choosing random audience path. Path {numbers[i]} was chosen");
                             result = numbers[i]; // Pick appropriate path
 
                             return result;
@@ -1776,7 +1776,7 @@ namespace StrixSDK.Runtime
                         value2 = value2Object.ToObject<NodeDataValue>();
                     }
 
-                    Debug.Log(
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage(
                         $"Summing {value1.Value} ({value1.Type}) and {value2.Value} ({value2.Type})"
                     );
 
@@ -1832,7 +1832,7 @@ namespace StrixSDK.Runtime
                     {
                         value2 = value2Object.ToObject<NodeDataValue>();
                     }
-                    Debug.Log(
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage(
                         $"Subtracting {value1.Value} ({value1.Type}) and {value2.Value} ({value2.Type})"
                     );
 
@@ -1888,7 +1888,7 @@ namespace StrixSDK.Runtime
                     {
                         value2 = value2Object.ToObject<NodeDataValue>();
                     }
-                    Debug.Log(
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage(
                         $"Multiplying {value1.Value} ({value1.Type}) and {value2.Value} ({value2.Type})"
                     );
 
@@ -1945,7 +1945,7 @@ namespace StrixSDK.Runtime
                         value2 = value2Object.ToObject<NodeDataValue>();
                     }
 
-                    Debug.Log(
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage(
                         $"Dividing {value1.Value} ({value1.Type}) and {value2.Value} ({value2.Type})"
                     );
 
@@ -2002,7 +2002,7 @@ namespace StrixSDK.Runtime
                         value2 = value2Object.ToObject<NodeDataValue>();
                     }
 
-                    Debug.Log(
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage(
                         $"Finding power of {value1.Value} ({value1.Type}) and {value2.Value} ({value2.Type})"
                     );
 
@@ -2059,7 +2059,7 @@ namespace StrixSDK.Runtime
                         value2 = value2Object.ToObject<NodeDataValue>();
                     }
 
-                    Debug.Log(
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage(
                         $"Finding modulo between {value1.Value} ({value1.Type}) and {value2.Value} ({value2.Type})"
                     );
 
@@ -2116,7 +2116,7 @@ namespace StrixSDK.Runtime
                         value = valueObject.ToObject<NodeDataValue>();
                     }
 
-                    Debug.Log(
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage(
                         $"Setting field {fieldToSet.Value} ({fieldToSet.Type}) to {value.Value} ({value.Type})"
                     );
 

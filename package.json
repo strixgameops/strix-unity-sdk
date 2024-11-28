@@ -1,6 +1,6 @@
 {
   "name": "com.strixgameops.strix-unity-sdk",
-  "version": "2.0.10",
+  "version": "2.0.11",
   "displayName": "Strix SDK",
   "description": "Strix Game Ops plugin for analytics and live-ops",
   "documentationUrl": "https://strixgameops.com/docs/unity/integration",
@@ -26,5 +26,33 @@
     "name": "Strix GameOps",
     "email": "team@strixgameops.com",
     "url": "https://strixgameops.com/"
-  }
+  },
+  "samples": [
+        {
+            "displayName": "Analytics Example",
+            "description": "Contains simple examples of how to construct and send analytics events",
+            "path": "Samples~/Analytics"
+        },
+        {
+            "displayName": "Entities Example",
+            "description": "Contains simple examples of how to use entities system",
+            "path": "Samples~/Entities"
+        },
+        {
+            "displayName": "Offers Example",
+            "description": "Contains simple examples of how and when to call IAP or in-game currency offers",
+            "path": "Samples~/Offers"
+        },
+        {
+            "displayName": "Inventory Example",
+            "description": "Contains simple examples of how to use inventory methods",
+            "path": "Samples~/Inventory"
+        },
+        {
+            "displayName": "Player Warehouse Example",
+            "description": "Contains simple examples of how to get, set, add and subtract player statistics",
+            "path": "Samples~/PlayerWarehouse"
+        }
+        
+    ]
 }

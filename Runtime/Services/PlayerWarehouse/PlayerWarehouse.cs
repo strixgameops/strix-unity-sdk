@@ -34,7 +34,7 @@ namespace StrixSDK
         {
             if (!Strix.IsInitialized)
             {
-                Debug.Log($"StrixSDK isn't initialized. Player Warehouse system is not available.");
+                Debug.LogError($"StrixSDK isn't initialized. Player Warehouse system is not available.");
                 Destroy(gameObject);
             }
         }

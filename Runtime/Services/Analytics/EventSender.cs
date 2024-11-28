@@ -84,7 +84,7 @@ namespace StrixSDK
                 {"payload", JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(payload)}
             };
 
-            Debug.Log($"Sending analytics event: {payload}");
+            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Sending analytics event: {payload}");
 
             var response = await Client.Req(API.SendEvent, eventBody);
             if (response == "err")
@@ -104,17 +104,13 @@ namespace StrixSDK
             }
             else
             {
-                Debug.Log($"Analytics event was successfully sent.");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Analytics event was successfully sent.");
                 return response;
             }
         }
 
         #region Sending events
 
-        //
-        // newSession event: has no actions
-        // endSession event: takes it's actions from the PlayerPrefs saved on Initialize()
-        //
         public static async Task<string> SendNewSessionEvent(Dictionary<string, object> customData)
         {
             PlayerPrefs.SetString("Strix_SessionID", Guid.NewGuid().ToString());
@@ -135,6 +131,11 @@ namespace StrixSDK
             return await ProcessNewEvent(payloadJson, false);
         }
 
+        /// <summary>
+        /// Takes it's actions from the PlayerPrefs saved on Initialize()
+        /// </summary>
+        /// <param name="customData"></param>
+        /// <returns></returns>
         public static async Task<string> SendEndSessionEvent(Dictionary<string, object> customData)
         {
             var time = PlayerPrefs.GetString("Strix_SessionStartTime", string.Empty);

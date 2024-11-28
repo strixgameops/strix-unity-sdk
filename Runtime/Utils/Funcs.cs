@@ -1,14 +1,17 @@
 ﻿using Newtonsoft.Json.Linq;
-using System.Net.NetworkInformation;
 using UnityEngine;
+using StrixSDK.Runtime.Config;
 
 namespace StrixSDK.Runtime.Utils
 {
     public static class Utils
     {
-        public static void LogMessage(string message)
+        public static void StrixDebugLogMessage(string message)
         {
-            Debug.Log(message);
+            if (StrixSDKConfig.Instance.showDebugLogs)
+            {
+                Debug.Log(message);
+            }
         }
 
         public static void LogError(string message)

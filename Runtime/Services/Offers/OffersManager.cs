@@ -62,7 +62,7 @@ namespace StrixSDK.Runtime
             List<Offer> offersList = new List<Offer>();
             var offersDocs = Content.LoadAllFromFile("offers");
 
-            Debug.Log("Fetching offers...");
+            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Fetching offers...");
             if (offersDocs != null)
             {
                 foreach (var doc in offersDocs)
@@ -73,11 +73,11 @@ namespace StrixSDK.Runtime
                     offersList.Add(offer);
                 }
                 _offers = offersList.ToArray();
-                Debug.Log($"Fetched {_offers.Length} offers");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Fetched {_offers.Length} offers");
             }
             else
             {
-                Debug.Log($"Could not fetch offers from persistent storage");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Could not fetch offers from persistent storage");
             }
 
             for (int i = 0; i < _offers.Length; i++)
@@ -87,7 +87,7 @@ namespace StrixSDK.Runtime
 
             // Make IAP handler
 #if UNITY_ANDROID
-            Debug.Log("Making IAPs from offers...");
+            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Making IAPs from offers...");
 
             try
             {
@@ -96,7 +96,7 @@ namespace StrixSDK.Runtime
                 if (IAPInit)
                 {
                     IAPManagerInitiated = true;
-                    Debug.Log($"IAP manager initiated successfully.");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"IAP manager initiated successfully.");
                 }
                 else
                 {
@@ -111,7 +111,7 @@ namespace StrixSDK.Runtime
 #endif
 
             // Refresh positions array
-            Debug.Log("Fetching positioned offers...");
+            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Fetching positioned offers...");
             List<PositionedOffer> positionedOffersList = new List<PositionedOffer>();
             var positionedOffersDocs = Content.LoadAllFromFile("positionedOffers");
             if (positionedOffersDocs != null)
@@ -124,11 +124,11 @@ namespace StrixSDK.Runtime
                     positionedOffersList.Add(position);
                 }
                 _positionedOffers = positionedOffersList.ToArray();
-                Debug.Log($"Fetched {_positionedOffers.Length} positions for offers");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Fetched {_positionedOffers.Length} positions for offers");
             }
             else
             {
-                Debug.Log($"Could not fetch positioned offers from persistent storage");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Could not fetch positioned offers from persistent storage");
             }
         }
 
@@ -172,7 +172,7 @@ namespace StrixSDK.Runtime
                 string userCurrency = PlayerPrefs.GetString("Strix_ClientCurrency", string.Empty);
                 if (userCurrency == string.Empty)
                 {
-                    Debug.Log($"Error: could not retrieve current user's currency from PlayerPrefs.");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Error: could not retrieve current user's currency from PlayerPrefs.");
                     return null;
                 }
                 offer.Price = OffersHelperMethods.GetCurrencyObjectByCurrencyCode(offer, userCurrency);
@@ -227,7 +227,7 @@ namespace StrixSDK.Runtime
                     resultPrice = offer.Pricing.Amount;
                 }
 
-                Debug.Log($"Offer ASKU: {asku}");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Offer ASKU: {asku}");
 
                 if (asku != null && offer.Pricing.Type == "money")
                 {
@@ -322,7 +322,7 @@ namespace StrixSDK.Runtime
             }
             catch (Exception e)
             {
-                Debug.Log($"Could not buy offer '{offerId}'. Error: {e.Message}");
+                Debug.LogError($"Could not buy offer '{offerId}'. Error: {e.Message}");
                 return false;
             }
         }
@@ -384,7 +384,7 @@ namespace StrixSDK.Runtime
             }
             catch (Exception ex)
             {
-                Debug.Log($"Could not find ASKU by ID '{id}'. Error: {ex.Message}");
+                Debug.LogError($"Could not find ASKU by ID '{id}'. Error: {ex.Message}");
                 return null;
             }
         }
@@ -446,7 +446,7 @@ namespace StrixSDK.Runtime
             }
             catch (Exception ex)
             {
-                Debug.Log($"Could not find Offer by ID '{id}'. Error: {ex.Message}");
+                Debug.LogError($"Could not find Offer by ID '{id}'. Error: {ex.Message}");
                 return null;
             }
         }
@@ -506,7 +506,7 @@ namespace StrixSDK.Runtime
             }
             catch (Exception ex)
             {
-                Debug.Log($"Could not find Offer by ID '{id}'. Error: {ex.Message}");
+                Debug.LogError($"Could not find Offer by ID '{id}'. Error: {ex.Message}");
                 return null;
             }
         }
@@ -611,7 +611,7 @@ namespace StrixSDK.Runtime
                 Offer offer = GetOfferById(offerId);
                 if (offer == null)
                 {
-                    Debug.Log($"GetOfferExpirationDate: Could not find offer by ID '{offerId}'.");
+                    Debug.LogError($"GetOfferExpirationDate: Could not find offer by ID '{offerId}'.");
                     return DateTime.MaxValue;
                 }
                 List<PlayerOfferData> playerOfferDatas = PlayerManager.Instance._playerData.Offers;
@@ -621,7 +621,7 @@ namespace StrixSDK.Runtime
                     DateTime parsed = DateTime.ParseExact(result.ExpirationDate, "yyyy-MM-ddTHH:mm:ss.fffffff", CultureInfo.InvariantCulture);
                     return parsed;
                 }
-                Debug.Log($"GetOfferExpirationDate: Could not get offer expiration date.");
+                Debug.LogError($"GetOfferExpirationDate: Could not get offer expiration date.");
                 return DateTime.MaxValue;
             }
             catch (Exception ex)
@@ -646,7 +646,7 @@ namespace StrixSDK.Runtime
             }
             catch (Exception ex)
             {
-                Debug.Log($"Could not find accessible offers. Error: {ex.Message}");
+                Debug.LogError($"Could not find accessible offers. Error: {ex.Message}");
                 return null;
             }
         }
@@ -660,7 +660,7 @@ namespace StrixSDK.Runtime
             }
             catch (Exception ex)
             {
-                Debug.Log($"Could not find offers. Error: {ex.Message}");
+                Debug.LogError($"Could not find offers. Error: {ex.Message}");
                 return null;
             }
         }
@@ -683,7 +683,7 @@ namespace StrixSDK.Runtime
             }
             catch (Exception ex)
             {
-                Debug.Log($"GetAllOffers: Could not find offers. Error: {ex.Message}");
+                Debug.LogError($"GetAllOffers: Could not find offers. Error: {ex.Message}");
                 return null;
             }
         }
@@ -732,7 +732,7 @@ namespace StrixSDK.Runtime
             }
             catch (Exception ex)
             {
-                Debug.Log($"Could not check if offer is accessible by current player. Error: {ex.Message}");
+                Debug.LogError($"Could not check if offer is accessible by current player. Error: {ex.Message}");
                 return false;
             }
         }
@@ -794,7 +794,7 @@ namespace StrixSDK.Runtime
             string entityId = EntityManager.Instance._entities.FirstOrDefault(e => e.NodeId == nodeId).Id;
             if (entityId == null)
             {
-                Debug.Log($"Could not find entity with node ID '{nodeId}' in offer '{offer.Id}'. Probably a mismatch/desync of entities and offers configurations!");
+                Debug.LogError($"Could not find entity with node ID '{nodeId}' in offer '{offer.Id}'. Probably a mismatch/desync of entities and offers configurations!");
                 return null;
             }
             OfferPrice price = new OfferPrice
@@ -804,7 +804,7 @@ namespace StrixSDK.Runtime
             };
             if (price == null)
             {
-                Debug.Log($"Could not construct price object in offer '{offer.Id}'.");
+                Debug.LogError($"Could not construct price object in offer '{offer.Id}'.");
                 return null;
             }
             return price;

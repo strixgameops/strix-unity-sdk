@@ -63,11 +63,11 @@ namespace StrixSDK.Runtime
                 }
 
                 _entities = entityList.ToArray();
-                Debug.Log($"Fetched {_entities.Length} entities");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Fetched {_entities.Length} entities");
             }
             else
             {
-                Debug.Log($"Could not fetch entities from persistent storage");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Could not fetch entities from persistent storage");
             }
         }
 

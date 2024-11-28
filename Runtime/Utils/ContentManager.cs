@@ -67,7 +67,7 @@ namespace StrixSDK.Runtime.Utils
             {
                 if (document == null)
                 {
-                    Debug.Log($"SaveToFile failed. Document is null.");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"SaveToFile failed. Document is null.");
                 }
 
                 string directoryPath = Path.Combine(Application.persistentDataPath, "Plugins", $"StrixSDK/StrixData/{tableName}");
@@ -97,7 +97,7 @@ namespace StrixSDK.Runtime.Utils
                     string base64Content = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(jsonContent));
                     File.WriteAllText(filePath, base64Content);
 
-                    //Debug.Log($"Data from {tableName} with ID {id} saved to {filePath}");
+                    //StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Data from {tableName} with ID {id} saved to {filePath}");
 
                     // Save the config documents separately if it exists
                     if (configs != null)
@@ -113,7 +113,7 @@ namespace StrixSDK.Runtime.Utils
                                 string configBase64Content = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(configJsonContent));
                                 File.WriteAllText(configFilePath, configBase64Content);
 
-                                //Debug.Log($"Config data from {tableName} with ID {id} and config ID {configId} saved to {configFilePath}");
+                                //StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Config data from {tableName} with ID {id} and config ID {configId} saved to {configFilePath}");
                             }
                             else
                             {
@@ -152,7 +152,7 @@ namespace StrixSDK.Runtime.Utils
                 string filePath = Path.Combine(directoryPath, $"{id}.txt");
                 File.WriteAllText(filePath, base64File);
 
-                //Debug.Log($"Media with ID {id} saved to {filePath}");
+                //StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Media with ID {id} saved to {filePath}");
 
                 return id;
             }
@@ -173,7 +173,7 @@ namespace StrixSDK.Runtime.Utils
                 if (File.Exists(filePath))
                 {
                     string base64Content = File.ReadAllText(filePath);
-                    //Debug.Log($"Media with ID {id} found at {filePath}");
+                    //StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Media with ID {id} found at {filePath}");
                     return base64Content;
                 }
                 else
@@ -207,15 +207,15 @@ namespace StrixSDK.Runtime.Utils
                         if (!mediaIDs.Contains(fileName))
                         {
                             File.Delete(file);
-                            Debug.Log($"Deleted excess cached media file: {file}");
+                            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Deleted excess cached media file: {file}");
                         }
                     }
 
-                    Debug.Log($"ResolveCachedMedia completed for media type: {mediaType}");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"ResolveCachedMedia completed for media type: {mediaType}");
                 }
                 else
                 {
-                    Debug.Log($"No need to resolve cached media. Directory not found: {directoryPath}");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"No need to resolve cached media. Directory not found: {directoryPath}");
                 }
             }
             catch (Exception ex)
@@ -239,11 +239,11 @@ namespace StrixSDK.Runtime.Utils
                         File.Delete(file);
                     }
 
-                    Debug.Log($"ClearContent completed for table: {tableName}");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"ClearContent completed for table: {tableName}");
                 }
                 else
                 {
-                    Debug.Log($"Directory not found: {directoryPath}");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Directory not found: {directoryPath}");
                 }
             }
             catch (Exception ex)
@@ -265,7 +265,7 @@ namespace StrixSDK.Runtime.Utils
                 string filePath = Path.Combine(directoryPath, $"{tableName}-checksum.txt");
                 File.WriteAllText(filePath, checksum.ToString());
 
-                //Debug.Log($"Media with ID {tableName}-checksum.txt saved to {filePath}");
+                //StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Media with ID {tableName}-checksum.txt saved to {filePath}");
             }
             catch (Exception ex)
             {
@@ -360,7 +360,7 @@ namespace StrixSDK.Runtime.Utils
                     string jsonContent = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(base64Content));
                     T document = JsonConvert.DeserializeObject<T>(jsonContent);
 
-                    //Debug.Log($"Data from {tableName} with ID {id} loaded from {filePath}");
+                    //StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Data from {tableName} with ID {id} loaded from {filePath}");
                     return document;
                 }
                 else
@@ -405,7 +405,7 @@ namespace StrixSDK.Runtime.Utils
                         var document = JsonConvert.DeserializeObject<JObject>(jsonContent);
                         documents.Add(document);
 
-                        //Debug.Log($"Data from {tableName} loaded from {file}");
+                        //StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Data from {tableName} loaded from {file}");
                     }
                 }
                 else
@@ -441,7 +441,7 @@ namespace StrixSDK.Runtime.Utils
                         if (File.Exists(file))
                         {
                             File.Delete(file);
-                            Debug.Log($"File {file} deleted successfully.");
+                            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"File {file} deleted successfully.");
                         }
                     }
                 }
@@ -501,7 +501,7 @@ namespace StrixSDK.Runtime.Utils
                     File.WriteAllText(filePath, eventsJson);
                 }
 
-                Debug.Log($"Events cached successfully to {filePath}");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Events cached successfully to {filePath}");
             }
             catch (Exception ex)
             {
@@ -555,7 +555,7 @@ namespace StrixSDK.Runtime.Utils
                 if (File.Exists(filePath))
                 {
                     File.Delete(filePath);
-                    Debug.Log($"File {filePath} deleted successfully.");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"File {filePath} deleted successfully.");
                 }
                 else
                 {
@@ -603,7 +603,7 @@ namespace StrixSDK.Runtime.Utils
                     string jsonContent = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(base64Content));
                     var document = JsonConvert.DeserializeObject<EntityConfig>(jsonContent);
 
-                    //Debug.Log($"Data from 'entities' with ID {entityNodeId} loaded from {filePath}");
+                    //StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Data from 'entities' with ID {entityNodeId} loaded from {filePath}");
                     return document;
                 }
                 else
@@ -642,7 +642,7 @@ namespace StrixSDK.Runtime.Utils
                         var config = JsonConvert.DeserializeObject<EntityConfig>(jsonContent);
                         configs.Add(config);
 
-                        //Debug.Log($"Data from 'entities' with ID {entityNodeId} loaded from {filePath}");
+                        //StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Data from 'entities' with ID {entityNodeId} loaded from {filePath}");
                     }
                 }
 

@@ -1,3 +1,5 @@
+#if UNITY_EDITOR
+
 using UnityEngine;
 using StrixSDK.Runtime.Config;
 using UnityEditor;
@@ -55,3 +57,5 @@ public static class StrixSettingsProvider
         return provider;
     }
 }
+
+#endif

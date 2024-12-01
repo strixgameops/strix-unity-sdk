@@ -2,7 +2,8 @@
     "name": "StrixSDKEditor",
     "rootNamespace": "StrixSDKEditor",
     "references": [
-    "StrixSDKRuntime"
+    "StrixSDKRuntime",
+    "UnityEditor"
   ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -160,14 +160,28 @@ namespace StrixSDK
                 // Make analytics instance. It will listen for Unity logs and report any errors. Make it before all calls to catch any errors.
                 Analytics analyticsInstance = Analytics.Instance;
 
-                // We need to send newSession event and get the key we will use to access db
-                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Sending initial analytics event.");
-                var result = await Analytics.SendNewSessionEvent(null);
+                string sessionID = Guid.NewGuid().ToString();
+                PlayerPrefs.SetString("Strix_SessionID", sessionID);
+                PlayerPrefs.Save();
+
+                // We need to send initializating request to get player data and proceed with analytics events
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Sending init req.");
+                var initBody = new Dictionary<string, object>()
+                {
+                    {"device", clientId},
+                    {"secret", config.apiKey},
+                    {"session", sessionID},
+                    {"build", config.branch},
+                };
+                var result = await Client.Req(API.Init, initBody);
 
                 if (!string.IsNullOrEmpty(result))
                 {
                     // If the key was fetched, proceed with initialization
                     var responseObj = JsonConvert.DeserializeObject<M_InitializationResponse>(result);
+
+                    // Session event
+                    await Analytics.SendNewSessionEvent(responseObj.Data.IsNewPlayer, null);
 
                     // Set client key which is used for DB access & identifies target currency for IAPs
                     PlayerPrefs.SetString("Strix_ClientKey", responseObj.Data.Key);
@@ -190,7 +204,8 @@ namespace StrixSDK
                             "offers",
                             "positionedOffers",
                             "abtests",
-                            "flows"
+                            "flows",
+                            "events"
                         });
                     }
 #else
@@ -203,7 +218,8 @@ namespace StrixSDK
                          "offers",
                          "positionedOffers",
                          "abtests",
-                         "flows"
+                         "flows",
+                         "events"
                     });
 #endif
 
@@ -231,8 +247,14 @@ namespace StrixSDK
                     bool flowsInit = flowsManagerInstance.Initialize();
                     StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("FlowsManager initialization finished.");
 
+                    //// Initialize game events manager
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Starting FlowsManager initialization...");
+                    GameEventsManager eventsManagerInstance = GameEventsManager.Instance;
+                    bool eventsInit = eventsManagerInstance.Initialize();
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("FlowsManager initialization finished.");
+
 #if UNITY_ANDROID
-                    if (transactionsInit && offersInit && entitiesInit && warehouseInit)
+                    if (transactionsInit && offersInit && entitiesInit && warehouseInit && flowsInit && eventsInit)
                     {
                         StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("StrixSDK initialized successfuly!");
                         return true;
@@ -245,6 +267,8 @@ namespace StrixSDK
                             $"EntityManager={entitiesInit}." +
                             $"PlayerManager={warehouseInit}." +
                             $"TransactionsHandler={transactionsInit}." +
+                            $"FlowsManager={flowsInit}." +
+                            $"GameEventsManager={eventsInit}." +
                             $" Strix will try to initialize using local configs.");
                         InitializeServices();
                         return false;
@@ -262,6 +286,8 @@ namespace StrixSDK
                             $"OffersManager={offersInit}." +
                             $"EntityManager={entitiesInit}." +
                             $"PlayerManager={warehouseInit}." +
+                            $"FlowsManager={flowsInit}." +
+                            $"GameEventsManager={eventsInit}." +
                             $" Strix will try to initialize using local configs.");
                         InitializeServices();
                         return false;
@@ -310,6 +336,12 @@ namespace StrixSDK
                 FlowsManager flowsManagerInstance = FlowsManager.Instance;
                 bool flowsInit = flowsManagerInstance.Initialize();
                 StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("FlowsManager initialization finished.");
+
+                //// Initialize game events manager
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("Starting FlowsManager initialization...");
+                GameEventsManager eventsManagerInstance = GameEventsManager.Instance;
+                bool eventsInit = eventsManagerInstance.Initialize();
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("FlowsManager initialization finished.");
             }
             catch (Exception ex)
             {
@@ -319,7 +351,6 @@ namespace StrixSDK
 
         private async void Awake()
         {
-            Debug.Log($"Aboba");
             if (_instance == null)
             {
                 _instance = this;

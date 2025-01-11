@@ -22,6 +22,9 @@ namespace StrixSDK
 
         [JsonProperty("currency")]
         public string Currency { get; set; }
+
+        [JsonProperty("isNewPlayer")]
+        public bool IsNewPlayer { get; set; }
     }
 
     public class FCMOptions

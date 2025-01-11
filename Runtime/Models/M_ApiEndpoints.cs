@@ -1,11 +1,12 @@
-﻿using System.Web;
-
-namespace StrixSDK.Runtime.Models
+﻿namespace StrixSDK.Runtime.Models
 {
     public static class API
     {
         private const string server = "https://tool.strixgameops.com";
         //private const string server = "http://localhost:3005";
+
+        // Session manage
+        public const string Init = server + "/sdk/api/v1/init";
 
         // Analytics
         public const string SendEvent = server + "/sdk/api/v1/analytics/sendEvent";

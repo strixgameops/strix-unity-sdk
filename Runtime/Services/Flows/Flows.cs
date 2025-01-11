@@ -47,9 +47,9 @@ namespace StrixSDK
         /// </summary>
         /// <param name="customTriggerId"></param>
         /// <returns></returns>
-        public static void ExecuteFlow(string customTriggerId)
+        public static Dictionary<string, object> ExecuteFlow(string customTriggerId)
         {
-            Instance.I_ExecuteFlow(customTriggerId);
+            return Instance.I_ExecuteFlow(customTriggerId);
         }
 
         public static Offer ExecuteFlow_OfferShown(Offer offer)
@@ -66,9 +66,9 @@ namespace StrixSDK
 
         #region Instance methods
 
-        private void I_ExecuteFlow(string customTriggerId)
+        private Dictionary<string, object> I_ExecuteFlow(string customTriggerId)
         {
-            FlowsManager.Instance.ExecuteCustomFlow(customTriggerId);
+            return FlowsManager.Instance.ExecuteCustomFlow(customTriggerId);
         }
 
         private Offer I_ExecuteFlow_OfferShown(Offer offer)

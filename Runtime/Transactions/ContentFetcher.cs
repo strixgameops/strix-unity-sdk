@@ -186,6 +186,7 @@ namespace StrixSDK.Runtime.Db
                             bool recache_StatTemplates = false;
                             bool recache_PositionOffers = false;
                             bool recache_Flows = false;
+                            bool recache_GameEvents = false;
                             foreach (JObject contentItem in data)
                             {
                                 int itemChecksum = (int)contentItem["checksum"];
@@ -217,6 +218,11 @@ namespace StrixSDK.Runtime.Db
                                     case "stattemplates":
                                         Content.SaveToFile(contentType, contentItem);
                                         recache_StatTemplates = true;
+                                        break;
+
+                                    case "events":
+                                        Content.SaveToFile(contentType, contentItem);
+                                        recache_GameEvents = true;
                                         break;
 
                                     case "positionedOffers":
@@ -265,6 +271,11 @@ namespace StrixSDK.Runtime.Db
                             {
                                 Content.RecacheExistingFlows();
                                 Content.ResolveCachedMedia(mediaIDs, "flows");
+                            }
+                            if (recache_GameEvents)
+                            {
+                                Content.RecacheExistingGameEvents();
+                                Content.ResolveCachedMedia(mediaIDs, "events");
                             }
                         }
                         else

@@ -407,6 +407,7 @@ namespace StrixSDK.Runtime
                 }
 
                 // If player participates in the AB test for this offer, find it and try to give an intended variation of the requested offer
+                bool changedOfferOnce = false;
                 var allTests = PlayerManager.Instance._abTests.Where(t => t.Subject.ItemId == offer.InternalId).ToList();
                 if (allTests.Any())
                 {
@@ -424,6 +425,7 @@ namespace StrixSDK.Runtime
 
                                 if (tempOffer != null)
                                 {
+                                    changedOfferOnce = true;
                                     offer = tempOffer;
                                 }
                                 else
@@ -433,6 +435,18 @@ namespace StrixSDK.Runtime
                                 break;
                             }
                         }
+                    }
+                }
+                if (!changedOfferOnce)
+                {
+                    var eventChangedOffer = GameEventsManager.Instance.TryGetChangedOfferFromOngoingEvents(
+                            PlayerManager.Instance._playerData.Segments,
+                            GetOriginalOfferInternalId(
+                        OffersManager.Instance._offers.FirstOrDefault(p => p.Id == id).InternalId), OffersManager.Instance._offers.ToList());
+                    if (eventChangedOffer != null)
+                    {
+                        changedOfferOnce = true;
+                        offer = eventChangedOffer;
                     }
                 }
 
@@ -466,6 +480,7 @@ namespace StrixSDK.Runtime
                 if (applyModifications)
                 {
                     // If player participates in the AB test for this offer, find it and try to give an intended variation of the requested offer
+                    bool changedOfferOnce = false;
                     var allTests = PlayerManager.Instance._abTests.Where(t => t.Subject.ItemId == offer.InternalId).ToList();
                     if (allTests.Any())
                     {
@@ -483,6 +498,7 @@ namespace StrixSDK.Runtime
 
                                     if (tempOffer != null)
                                     {
+                                        changedOfferOnce = true;
                                         offer = tempOffer;
                                     }
                                     else
@@ -492,6 +508,19 @@ namespace StrixSDK.Runtime
                                     break;
                                 }
                             }
+                        }
+                    }
+
+                    if (!changedOfferOnce)
+                    {
+                        var eventChangedOffer = GameEventsManager.Instance.TryGetChangedOfferFromOngoingEvents(
+                            PlayerManager.Instance._playerData.Segments,
+                            GetOriginalOfferInternalId(
+                        OffersManager.Instance._offers.FirstOrDefault(p => p.Id == id).InternalId), OffersManager.Instance._offers.ToList());
+                        if (eventChangedOffer != null)
+                        {
+                            changedOfferOnce = true;
+                            offer = eventChangedOffer;
                         }
                     }
                 }
@@ -701,6 +730,7 @@ namespace StrixSDK.Runtime
 
                 // Segment check
                 List<string> userSegments = playerData.Segments;
+                userSegments = GameEvents.AddGameEventSegments(userSegments);
                 segmentCheck = offer.Segments == null || offer.Segments.Length == 0 || offer.Segments.Intersect(userSegments).Any();
 
                 // Check if user passes the offer expiration date check

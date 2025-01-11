@@ -35,6 +35,11 @@ namespace StrixSDK.Runtime.Utils
             FlowsManager.Instance.RefreshFlows();
         }
 
+        public static void RecacheExistingGameEvents()
+        {
+            GameEventsManager.Instance.RefreshEvents();
+        }
+
         public static void RecacheExistingEntities()
         {
             EntityManager.Instance.RefreshEntities();

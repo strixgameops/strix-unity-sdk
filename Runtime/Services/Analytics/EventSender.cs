@@ -111,17 +111,18 @@ namespace StrixSDK
 
         #region Sending events
 
-        public static async Task<string> SendNewSessionEvent(Dictionary<string, object> customData)
+        public static async Task<string> SendNewSessionEvent(bool isNewPlayer, Dictionary<string, object> customData)
         {
-            PlayerPrefs.SetString("Strix_SessionID", Guid.NewGuid().ToString());
-            PlayerPrefs.Save();
-
             // Making event payload
+            var actions = new Dictionary<string, object>
+                    {
+                        { "isNewPlayer", isNewPlayer }
+                    };
             var payloadObject = new Dictionary<string, object>()
                 {
                     { "time", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") },
                     { "type", "newSession" },
-                    { "actions", new JObject() },
+                    { "actions", actions },
                     { "customData", customData }
                 };
 

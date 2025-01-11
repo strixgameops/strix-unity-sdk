@@ -437,7 +437,7 @@ namespace StrixSDK.Runtime
 
         public static RawSegmentValue PickAppropriateSegmentedValue(RawConfigValue valueConfig)
         {
-            // Check if value is being AB tested and we're in the test. Pick the first matching segment for now, probably should implement priorities later.
+            // Check if value is being AB tested and we're in the test.
             ABTest[] filteredABTests = PlayerManager.Instance._abTests
                     .Where(test => test.Subject?.Type == "entity")
                     .ToArray();
@@ -445,8 +445,33 @@ namespace StrixSDK.Runtime
                 .Select(test => $"abtest_{test.InternalId}")
                 .ToList();
 
+            // Try to find AB test value
             var firstMatchingSegment = valueConfig.Segments?
                 .FirstOrDefault(segment => abTestSegmentIds.Contains(segment.SegmentID));
+
+            // If AB test value found
+            if (firstMatchingSegment != null && firstMatchingSegment.SegmentID != "everyone")
+            {
+                return firstMatchingSegment;
+            }
+
+            // Make full segments list, including game events
+            var playerSegments = PlayerManager.Instance._playerData.Segments;
+            playerSegments = GameEvents.AddGameEventSegments(playerSegments);
+            playerSegments.RemoveAll(segment => segment == "everyone");
+
+            // Try to find value for any segment that player has
+            firstMatchingSegment = valueConfig.Segments?
+                .FirstOrDefault(segment => playerSegments.Contains(segment.SegmentID));
+
+            if (firstMatchingSegment != null)
+            {
+                return firstMatchingSegment;
+            }
+
+            // If no match found, return the 'everyone' segment, assuming it exists.
+            firstMatchingSegment = valueConfig.Segments?
+                .FirstOrDefault(segment => segment.SegmentID == "everyone");
 
             return firstMatchingSegment;
         }

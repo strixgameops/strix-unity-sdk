@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using StrixSDK.Runtime.Utils;
 using System;
@@ -1531,15 +1531,32 @@ namespace StrixSDK.Runtime
                     {
                         if (cases[i].IsDefault != true)
                         {
-                            if (var1.ToString() == cases[i].Type)
+                            if (field.Type == "segmentID")
                             {
-                                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Switching on field {field.Value} with value \"{var1}\". Case \"{cases[i].Type}\": true");
-                                result = i;
-                                return result;
+                                if (var1 is Array arrayVar)
+                                {
+                                    bool containsString = arrayVar.Cast<object>().Contains(cases[i].Type);
+
+                                    if (containsString)
+                                    {
+                                        StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Switching on field {field.Value} with value \"{var1}\". Case \"{cases[i].Type}\": true");
+                                        result = i;
+                                        return result;
+                                    }
+                                }
                             }
                             else
                             {
-                                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Switching on field {field.Value} with value \"{var1}\". Case \"{cases[i].Type}\": false");
+                                if (var1.ToString() == cases[i].Type)
+                                {
+                                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Switching on field {field.Value} with value \"{var1}\". Case \"{cases[i].Type}\": true");
+                                    result = i;
+                                    return result;
+                                }
+                                else
+                                {
+                                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Switching on field {field.Value} with value \"{var1}\". Case \"{cases[i].Type}\": false");
+                                }
                             }
                         }
                     }

@@ -416,6 +416,8 @@ namespace StrixSDK.Runtime
                 }
             }
 
+            variablesValues.Add(new VariableValue { Id = "segment", Value = PlayerManager.Instance._playerData.Segments });
+
             if (contextualData != null)
             {
                 foreach (var prop in contextualData)

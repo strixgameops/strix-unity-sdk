@@ -62,7 +62,7 @@ namespace StrixSDK
         }
 
         /// <summary>
-        /// Returns offer with given ID, if it exists. Also sends analytics event which helps tracking offer decline rate. Also triggers the start of expiration, if duration for the offer is set. User won't be able to retrieve the offer after it's time is up.
+        /// Returns offer with given ID, if it exists. Also sends analytics event which helps tracking offer conversion rate. Also triggers the start of expiration, if duration for the offer is set. User won't be able to retrieve the offer after it's time is up.
         /// </summary>
         public static Offer ShowOffer(string offerId, Dictionary<string, object> analyticsEventCustomData)
         {
@@ -77,7 +77,7 @@ namespace StrixSDK
         }
 
         /// <summary>
-        /// Returns offer with given ID, if it exists. Also sends analytics event which helps tracking offer decline rate. Conditionally triggers the start of expiration,
+        /// Returns offer with given ID, if it exists. Also sends analytics event which helps tracking offer conversion rate. Conditionally triggers the start of expiration,
         /// if duration for the offer is set. User won't be able to retrieve the offer after it's time is up.
         /// </summary>
         public static Offer ShowOffer(string offerId, bool startExpiration, Dictionary<string, object> analyticsEventCustomData)

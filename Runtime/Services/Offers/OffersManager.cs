@@ -904,14 +904,6 @@ namespace StrixSDK.Runtime
         /// <param name="offers">The list of offers that got triggered by some change</param>
         public static void InvokeTriggeredOffers(List<Offer> offers)
         {
-            foreach (var offer in offers)
-            {
-                if (offer != null)
-                {
-                    StartOfferExpiration(offer.Id);
-                    _ = Analytics.SendOfferShownEvent(offer.Id, offer.Price.Value, null);
-                }
-            }
             OnOffersTriggered?.Invoke(offers);
         }
     }

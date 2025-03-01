@@ -872,7 +872,7 @@ namespace StrixSDK.Runtime
             return new List<InventoryItem>();
         }
 
-        public static async Task<string> GetInventoryItemAmount(string entityId)
+        public static async Task<string> GetInventoryItemAmount(string entityId, int? slot = null)
         {
             Entity entity = Entities.GetEntityById(entityId);
             if (entity == null)
@@ -891,7 +891,8 @@ namespace StrixSDK.Runtime
                 {"device", Strix.clientID},
                 {"secret", config.apiKey},
                 {"build", buildType},
-                {"nodeID", entity.NodeId}
+                {"nodeID", entity.NodeId},
+                {"slot", slot }
             };
             var response = await Client.Req(API.GetInventoryItemAmount, body);
             var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
@@ -910,7 +911,7 @@ namespace StrixSDK.Runtime
             return "0";
         }
 
-        public static async Task<bool> AddInventoryItem(string entityId, int amount)
+        public static async Task<bool> AddInventoryItem(string entityId, int amount, int? slot = null)
         {
             Entity entity = Entities.GetEntityById(entityId);
             if (entity == null)
@@ -930,7 +931,8 @@ namespace StrixSDK.Runtime
                 {"secret", config.apiKey},
                 {"build", buildType},
                 {"nodeID", entity.NodeId},
-                {"amount", amount.ToString()}
+                {"amount", amount.ToString()},
+                {"slot", slot }
             };
             var response = await Client.Req(API.AddInventoryItem, body);
             var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
@@ -950,7 +952,7 @@ namespace StrixSDK.Runtime
             return false;
         }
 
-        public static async Task<bool> RemoveInventoryItem(string entityId, int amount)
+        public static async Task<bool> RemoveInventoryItem(string entityId, int amount, int? slot = null)
         {
             Entity entity = Entities.GetEntityById(entityId);
             if (entity == null)
@@ -970,7 +972,8 @@ namespace StrixSDK.Runtime
                 {"secret", config.apiKey},
                 {"build", buildType},
                 {"nodeID", entity.NodeId},
-                {"amount", amount.ToString()}
+                {"amount", amount.ToString()},
+                {"slot", slot }
             };
             var response = await Client.Req(API.RemoveInventoryItem, body);
             var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);

@@ -12,5 +12,8 @@ namespace StrixSDK
 
         [JsonProperty("quantity")]
         public string Quantity { get; set; }
+
+        [JsonProperty("slot")]
+        public int Slot { get; set; }
     }
 }

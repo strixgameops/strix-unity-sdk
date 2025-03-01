@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using StrixSDK.Runtime.Utils;
+using Firebase.Messaging;
 
 namespace StrixSDK.Runtime
 {
@@ -795,8 +796,14 @@ namespace StrixSDK.Runtime
             }
         }
 
-        public static async Task<List<LeaderboardTimeframe>> GetLeaderboard(string leaderboardId)
+        public static async Task<List<LeaderboardTimeframe>> GetLeaderboard(string leaderboardId, string? groupElementId, string? groupElementValue)
         {
+            // If both null, skip. If any is not null, check that both aren't null
+            if ((groupElementId == null) != (groupElementValue == null))
+            {
+                throw new ArgumentException("Both arguments must be provided when using groupElementId or groupElementValue.");
+            }
+
             // Loading config file
             StrixSDKConfig config = StrixSDKConfig.Instance;
 
@@ -809,6 +816,12 @@ namespace StrixSDK.Runtime
                 {"build", buildType},
                 {"leaderboardID", leaderboardId},
             };
+            if (groupElementId != null && groupElementValue != null)
+            {
+                body["groupID"] = groupElementId;
+                body["groupValue"] = groupElementValue;
+            }
+
             var response = await Client.Req(API.GetLeaderboard, body);
             var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
             if (data != null)

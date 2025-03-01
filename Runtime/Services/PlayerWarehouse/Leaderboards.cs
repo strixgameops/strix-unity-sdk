@@ -53,18 +53,18 @@ namespace StrixSDK
         /// </summary>
         /// <param name="leaderboardId"></param>
         /// <returns></returns>
-        public static async Task<List<LeaderboardTimeframe>> GetLeaderboard(string leaderboardId)
+        public static async Task<List<LeaderboardTimeframe>> GetLeaderboard(string leaderboardId, string? groupElementId, string? groupElementValue)
         {
-            return await Instance.I_GetLeaderboard(leaderboardId);
+            return await Instance.I_GetLeaderboard(leaderboardId, groupElementId, groupElementValue);
         }
 
         #endregion Static methods
 
         #region Instance methods
 
-        private async Task<List<LeaderboardTimeframe>> I_GetLeaderboard(string leaderboardId)
+        private async Task<List<LeaderboardTimeframe>> I_GetLeaderboard(string leaderboardId, string? groupElementId, string? groupElementValue)
         {
-            return await WarehouseHelperMethods.GetLeaderboard(leaderboardId);
+            return await WarehouseHelperMethods.GetLeaderboard(leaderboardId, groupElementId, groupElementValue);
         }
 
         #endregion Instance methods

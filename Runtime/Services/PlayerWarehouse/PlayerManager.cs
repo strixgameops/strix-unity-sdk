@@ -801,7 +801,7 @@ namespace StrixSDK.Runtime
             // If both null, skip. If any is not null, check that both aren't null
             if ((groupElementId == null) != (groupElementValue == null))
             {
-                throw new ArgumentException("Both arguments must be provided when using groupElementId or groupElementValue.");
+                throw new ArgumentException("GetLeaderboard: Both arguments must be provided when using groupElementId or groupElementValue.");
             }
 
             // Loading config file
@@ -818,7 +818,13 @@ namespace StrixSDK.Runtime
             };
             if (groupElementId != null && groupElementValue != null)
             {
-                body["groupID"] = groupElementId;
+                ElementTemplate template = PlayerManager.Instance._templates.FirstOrDefault(t => t.Id == groupElementId);
+                if (template == null)
+                {
+                    throw new ArgumentException($"GetLeaderboard: No existing element template found by id '{groupElementId}'");
+                }
+
+                body["groupID"] = template.InternalId;
                 body["groupValue"] = groupElementValue;
             }
 
@@ -833,7 +839,7 @@ namespace StrixSDK.Runtime
                 }
                 else
                 {
-                    Debug.LogError($"Error while fetching leaderboard with id {leaderboardId}. {(string)data["message"]}");
+                    Debug.LogError($"GetLeaderboard: Error while fetching leaderboard with id {leaderboardId}. {(string)data["message"]}");
                     return new List<LeaderboardTimeframe>();
                 }
             }

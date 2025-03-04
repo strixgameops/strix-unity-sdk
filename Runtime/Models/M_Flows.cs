@@ -51,6 +51,18 @@ namespace StrixSDK
         public NodeDataValue Value { get; set; }
     }
 
+    public class NodeDataApplyChangeEventCustomData
+    {
+        [JsonProperty("field")]
+        public string Field { get; set; }
+
+        [JsonProperty("sid")]
+        public string Sid { get; set; }
+
+        [JsonProperty("customDataValue")]
+        public NodeDataValue Value { get; set; }
+    }
+
     public class NodeDataCases
     {
         [JsonProperty("sid")]

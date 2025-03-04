@@ -53,7 +53,20 @@ namespace StrixSDK
         /// </summary>
         /// <param name="leaderboardId"></param>
         /// <returns></returns>
-        public static async Task<List<LeaderboardTimeframe>> GetLeaderboard(string leaderboardId, string? groupElementId, string? groupElementValue)
+        public static async Task<List<LeaderboardTimeframe>> GetLeaderboard(string leaderboardId)
+        {
+            return await Instance.I_GetLeaderboard(leaderboardId, null, null);
+        }
+
+        /// <summary>
+        /// Gets current state of a given leaderboard. Returns an array of tops, where index of each top represents index of leaderboard's timeframe.
+        /// So timeframes "day, week, month" would associate as 0 for "day", 1 for "week", 2 for "month" accordingly.
+        /// Current player's score state is always appended to the returned top. For example, in top-5, current player will be 6th.
+        /// If player isn't present in leaderboard, his top will be -1. If player has no element values, configured defaults will be returned when possible.
+        /// </summary>
+        /// <param name="leaderboardId"></param>
+        /// <returns></returns>
+        public static async Task<List<LeaderboardTimeframe>> GetLeaderboard(string leaderboardId, string groupElementId, string groupElementValue)
         {
             return await Instance.I_GetLeaderboard(leaderboardId, groupElementId, groupElementValue);
         }

@@ -201,6 +201,62 @@ namespace StrixSDK.Runtime
             return offerObject;
         }
 
+        public Dictionary<string, object> ExecuteFlow_AnalyticsEventSend(string eventID, Dictionary<string, object> customData)
+        {
+            //List<Flow> flows = _flows.Where(flow =>
+            //    flow.Nodes.Id == "t_onAnalyticsEventSend"
+            //    && flow.Nodes.Data.ContainsKey("eventIDs")
+            //    && flow.Nodes.Data["eventIDs"] is List<string> eventIds
+            //    && eventIds.Contains(eventID)
+            //).ToList();
+
+            var filteredFlows = _flows.Where(flow => flow.Nodes.Id == "t_onAnalyticsEventSend").ToList();
+            var flowsWithEventIDs = filteredFlows.Where(flow => flow.Nodes.Data.ContainsKey("eventIDs")).ToList();
+            var flows = new List<Flow>();
+            foreach (var flow in flowsWithEventIDs)
+            {
+                if (flow.Nodes.Data["eventIDs"] is IEnumerable<object> eventIdsEnumerable)
+                {
+                    try
+                    {
+                        var eventIds = eventIdsEnumerable.Cast<object>()
+                                                                 .Select(x => x.ToString())
+                                                                 .ToList();
+                        if (eventIds.Contains(eventID))
+                        {
+                            flows.Add(flow);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"flow {flow.Nodes.Id}: eventIDs не содержит {eventID}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Ошибка парсинга JSON: {ex.Message}");
+                    }
+                }
+            }
+
+            Dictionary<string, object> currentCustomData = customData ?? new Dictionary<string, object>();
+
+            if (flows.Count > 0)
+            {
+                foreach (var flow in flows)
+                {
+                    FlowExecution flowExecution = flowExecutionPool.GetObject();
+
+                    flowExecution._eventCustomData = currentCustomData;
+                    flowExecution.ExecuteFlow(flow, null, null);
+                    currentCustomData = currentCustomData.Concat(flowExecution._eventCustomData)
+                            .ToDictionary(pair => pair.Key, pair => pair.Value);
+
+                    flowExecutionPool.ReturnObject(flowExecution);
+                }
+            }
+            return currentCustomData;
+        }
+
         public EntityConfig ExecuteFlow_ConfigParamRetrieved(EntityConfig entityConfig)
         {
             List<Flow> flows = _flows.Where(flow =>
@@ -365,6 +421,8 @@ namespace StrixSDK.Runtime
         public EntityConfig _entityConfig = null;
 
         public Offer _offer = null;
+
+        public Dictionary<string, object> _eventCustomData = new Dictionary<string, object>();
 
         private bool flowIsStopped = false;
 
@@ -799,6 +857,10 @@ namespace StrixSDK.Runtime
                     NodeFunctionHandler(TSegmentJoin, node, prevResult);
                     break;
 
+                case "t_onAnalyticsEventSend":
+                    NodeFunctionHandler(TOnAnalyticsEventSend, node, prevResult);
+                    break;
+
                 case "t_statChanged":
                     NodeFunctionHandler(TStatChanged, node, prevResult);
                     break;
@@ -925,6 +987,20 @@ namespace StrixSDK.Runtime
 
             // t_segmentJoin
             object TSegmentJoin(Node node, object prevResult)
+            {
+                try
+                {
+                    var result = prevResult;
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
+            }
+
+            object TOnAnalyticsEventSend(Node node, object prevResult)
             {
                 try
                 {
@@ -1421,11 +1497,29 @@ namespace StrixSDK.Runtime
                         fieldToSet = fieldToSetObject.ToObject<NodeDataValue>();
                     }
 
-                    var result = node.Data["value"];
-
+                    var result = (object)null;
+                    //_eventCustomData
                     switch (fieldToSet.Type)
                     {
+                        case "customData":
+                            List<NodeDataApplyChangeEventCustomData> customDataObj = null;
+                            if (node.Data.ContainsKey("customData") && node.Data["customData"] is JArray customDataArray)
+                            {
+                                customDataObj = customDataArray.ToObject<List<NodeDataApplyChangeEventCustomData>>();
+                            }
+
+                            Dictionary<string, object> customData = new Dictionary<string, object>();
+                            foreach (var item in customDataObj)
+                            {
+                                object var1 = TryGetDataVariable(item.Value.Value, item.Value.IsCustom, prevResult, item.Value.Type);
+                                var1 = TryChangeDataType(var1, item.Value.Type);
+                                customData.Add(item.Field, var1);
+                            }
+                            _eventCustomData = customData;
+                            break;
+
                         case "offerIcon":
+                            result = node.Data["value"];
                             var fileName = Path.GetFileName((string)result);
 
                             // Check if the file exists in the cache
@@ -1441,14 +1535,17 @@ namespace StrixSDK.Runtime
                             break;
 
                         case "offerPrice":
+                            result = node.Data["value"];
                             _offer.Price.Value = (float)result;
                             break;
 
                         case "offerDiscount":
+                            result = node.Data["value"];
                             _offer.Pricing.Discount = (int)result;
                             break;
 
                         case "entityConfigValue":
+                            result = node.Data["value"];
                             var changed = false;
                             foreach (var value in _entityConfig.RawValues)
                             {

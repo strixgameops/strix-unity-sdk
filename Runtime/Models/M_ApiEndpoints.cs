@@ -4,6 +4,9 @@
     {
         private const string server = "https://tool.strixgameops.com";
 
+        // For development
+        //private const string server = "http://localhost:3005";
+
         // Session manage
         public const string Init = server + "/sdk/api/deployment/v1/init";
 

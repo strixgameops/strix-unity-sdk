@@ -174,19 +174,22 @@ namespace StrixSDK.Runtime.Db
                     if ((bool)doc["success"])
                     {
                         var data = doc["data"] as JArray;
+
+                        mediaIDs.Clear();
+                        Content.ClearContent(contentType); // <- if data will be null, we just clear the content. If not, we'll place a new content
+
+                        bool recache_Offers = false;
+                        bool recache_Tests = false;
+                        bool recache_Localization = false;
+                        bool recache_Entities = false;
+                        bool recache_StatTemplates = false;
+                        bool recache_PositionOffers = false;
+                        bool recache_Flows = false;
+                        bool recache_GameEvents = false;
+
                         if (data != null)
                         {
-                            mediaIDs.Clear();
-                            Content.ClearContent(contentType);
-
-                            bool recache_Offers = false;
-                            bool recache_Tests = false;
-                            bool recache_Localization = false;
-                            bool recache_Entities = false;
-                            bool recache_StatTemplates = false;
-                            bool recache_PositionOffers = false;
-                            bool recache_Flows = false;
-                            bool recache_GameEvents = false;
+                            // If Data isnt null, update the content and set dependent content to refresh
                             foreach (JObject contentItem in data)
                             {
                                 int itemChecksum = (int)contentItem["checksum"];
@@ -241,46 +244,84 @@ namespace StrixSDK.Runtime.Db
                                 }
                                 totalChecksum += itemChecksum;
                             }
-                            Content.SaveCacheChecksum(contentType, totalChecksum);
-
-                            if (recache_Offers || recache_PositionOffers)
-                            {
-                                Content.RecacheExistingOffers();
-                                Content.ResolveCachedMedia(mediaIDs, "offers");
-                            }
-                            if (recache_Tests)
-                            {
-                                Content.RecacheExistingTests();
-                            }
-                            if (recache_Localization)
-                            {
-                                // No implementation for localization because there is no cache yet that we need to reload
-                                Content.RecacheExistingOffers(); // But we still need to refresh offers in case some loc changed for any offer
-                            }
-                            if (recache_Entities)
-                            {
-                                Content.RecacheExistingEntities();
-                                Content.RecacheExistingOffers();
-                                Content.ResolveCachedMedia(mediaIDs, "entities");
-                            }
-                            if (recache_StatTemplates)
-                            {
-                                Content.RecacheExistingStatisticsTemplates();
-                            }
-                            if (recache_Flows)
-                            {
-                                Content.RecacheExistingFlows();
-                                Content.ResolveCachedMedia(mediaIDs, "flows");
-                            }
-                            if (recache_GameEvents)
-                            {
-                                Content.RecacheExistingGameEvents();
-                                Content.ResolveCachedMedia(mediaIDs, "events");
-                            }
                         }
                         else
                         {
-                            throw new Exception("Data object is null! Please report to Strix support team.");
+                            // If data is null, we just remove all the content of this type (a bit earlier), and just recache to sync
+                            switch (contentType)
+                            {
+                                case "offers":
+                                    recache_Offers = true;
+                                    break;
+
+                                case "entities":
+                                    recache_Entities = true;
+                                    break;
+
+                                case "abtests":
+                                    recache_Tests = true;
+                                    break;
+
+                                case "localization":
+                                    recache_Localization = true;
+                                    break;
+
+                                case "stattemplates":
+                                    recache_StatTemplates = true;
+                                    break;
+
+                                case "events":
+                                    recache_GameEvents = true;
+                                    break;
+
+                                case "positionedOffers":
+                                    recache_PositionOffers = true;
+                                    break;
+
+                                case "flows":
+                                    recache_Flows = true;
+                                    break;
+
+                                default:
+                                    break;
+                            }
+                        }
+
+                        Content.SaveCacheChecksum(contentType, totalChecksum);
+
+                        if (recache_Offers || recache_PositionOffers)
+                        {
+                            Content.RecacheExistingOffers();
+                            Content.ResolveCachedMedia(mediaIDs, "offers");
+                        }
+                        if (recache_Tests)
+                        {
+                            Content.RecacheExistingTests();
+                        }
+                        if (recache_Localization)
+                        {
+                            // No implementation for localization because there is no cache yet that we need to reload
+                            Content.RecacheExistingOffers(); // But we still need to refresh offers in case some loc changed for any offer
+                        }
+                        if (recache_Entities)
+                        {
+                            Content.RecacheExistingEntities();
+                            Content.RecacheExistingOffers();
+                            Content.ResolveCachedMedia(mediaIDs, "entities");
+                        }
+                        if (recache_StatTemplates)
+                        {
+                            Content.RecacheExistingStatisticsTemplates();
+                        }
+                        if (recache_Flows)
+                        {
+                            Content.RecacheExistingFlows();
+                            Content.ResolveCachedMedia(mediaIDs, "flows");
+                        }
+                        if (recache_GameEvents)
+                        {
+                            Content.RecacheExistingGameEvents();
+                            Content.ResolveCachedMedia(mediaIDs, "events");
                         }
                     }
                     else

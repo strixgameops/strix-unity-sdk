@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
+using StrixSDK.Runtime;
 
 namespace StrixSDK
 {
@@ -118,6 +119,9 @@ namespace StrixSDK
                     {
                         { "isNewPlayer", isNewPlayer }
                     };
+
+            customData = FlowsManager.Instance.ExecuteFlow_AnalyticsEventSend("newSession", customData);
+
             var payloadObject = new Dictionary<string, object>()
                 {
                     { "time", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") },
@@ -150,6 +154,8 @@ namespace StrixSDK
                     {
                         { "sessionLength", differenceInSeconds }
                     };
+
+                customData = FlowsManager.Instance.ExecuteFlow_AnalyticsEventSend("endSession", customData);
 
                 // Making event payload
                 var payloadObject = new Dictionary<string, object>()
@@ -199,6 +205,8 @@ namespace StrixSDK
                     { "currency", currency },
                 };
 
+            customData = FlowsManager.Instance.ExecuteFlow_AnalyticsEventSend("offerEvent", customData);
+
             // Making event payload
             var payloadObject = new Dictionary<string, object>()
                 {
@@ -241,6 +249,8 @@ namespace StrixSDK
                     { "price", price },
                     { "currency", currency }
                 };
+
+            customData = FlowsManager.Instance.ExecuteFlow_AnalyticsEventSend("offerShown", customData);
 
             // Making event payload
             var payloadObject = new Dictionary<string, object>()
@@ -299,6 +309,8 @@ namespace StrixSDK
                     { "origin", origin },
                 };
 
+            customData = FlowsManager.Instance.ExecuteFlow_AnalyticsEventSend("economyEvent", customData);
+
             // Making event payload
             var payloadObject = new Dictionary<string, object>()
                 {
@@ -334,6 +346,8 @@ namespace StrixSDK
                      { "adType", adType.ToString() },
                      { "timeSpent", timeSpent.ToString() }
                  };
+
+            customData = FlowsManager.Instance.ExecuteFlow_AnalyticsEventSend("adEvent", customData);
 
             // Making event payload
             var payloadObject = new Dictionary<string, object>
@@ -376,6 +390,8 @@ namespace StrixSDK
                     { "message", message },
                 };
 
+            customData = FlowsManager.Instance.ExecuteFlow_AnalyticsEventSend("reportEvent", customData);
+
             // Making event payload
             var payloadObject = new Dictionary<string, object>()
                 {
@@ -397,6 +413,8 @@ namespace StrixSDK
             var time = PlayerPrefs.GetString("Strix_SessionStartTime", string.Empty);
             if (!String.IsNullOrEmpty(time))
             {
+                customData = FlowsManager.Instance.ExecuteFlow_AnalyticsEventSend(eventID, customData);
+
                 // Making event payload
                 var payloadObject = new Dictionary<string, object>()
                     {

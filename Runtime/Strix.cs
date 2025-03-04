@@ -180,9 +180,6 @@ namespace StrixSDK
                     // If the key was fetched, proceed with initialization
                     var responseObj = JsonConvert.DeserializeObject<M_InitializationResponse>(result);
 
-                    // Session event
-                    await Analytics.SendNewSessionEvent(responseObj.Data.IsNewPlayer, null);
-
                     // Set client key which is used for DB access & identifies target currency for IAPs
                     PlayerPrefs.SetString("Strix_ClientKey", responseObj.Data.Key);
                     PlayerPrefs.SetString("Strix_ClientCurrency", responseObj.Data.Currency);
@@ -276,6 +273,9 @@ namespace StrixSDK
 #else
                     if (offersInit && entitiesInit && warehouseInit)
                     {
+                        // Session event
+                        await Analytics.SendNewSessionEvent(responseObj.Data.IsNewPlayer, null);
+
                         StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("StrixSDK initialized successfuly!");
                         return true;
                     }

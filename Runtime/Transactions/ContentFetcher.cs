@@ -7,20 +7,21 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
+using StrixSDK.Runtime;
 using StrixSDK.Runtime.Utils;
 using StrixSDK.Runtime.Models;
 using StrixSDK.Runtime.Config;
 using System.Net.Http;
-
 using StrixSDK.Runtime.APIClient;
 
 namespace StrixSDK.Runtime.Db
 {
     public class ContentFetcher : MonoBehaviour
     {
-        private static CancellationTokenSource cts = new CancellationTokenSource();
-
+        private static readonly CancellationTokenSource cts = new CancellationTokenSource();
         private static ContentFetcher _instance;
+        private static readonly HttpClient httpClient = new HttpClient();
+        private static readonly HashSet<string> mediaIDs = new HashSet<string>();
 
         public static ContentFetcher Instance
         {
@@ -31,9 +32,8 @@ namespace StrixSDK.Runtime.Db
                     _instance = FindObjectOfType<ContentFetcher>();
                     if (_instance == null)
                     {
-                        GameObject obj = new GameObject();
+                        GameObject obj = new GameObject(typeof(ContentFetcher).ToString());
                         _instance = obj.AddComponent<ContentFetcher>();
-                        obj.name = typeof(ContentFetcher).ToString();
                     }
                 }
                 return _instance;
@@ -53,296 +53,260 @@ namespace StrixSDK.Runtime.Db
             }
         }
 
-        private static List<string> mediaIDs = new List<string>();
-
         /// <summary>
-        /// Makes a checksum checkup for specified content types. If server and local checksums differ, initiate fetch for such content. Updates only mismatched content.
+        /// Makes a checksum comparison for specified content types and fetches updated content where needed.
         /// </summary>
-        /// <param name="contentTypes"></param>
-        /// <returns>True if operation is successful and something was updated. False if no update was done for some reason.</returns>
+        /// <param name="contentTypes">List of content type names to check</param>
+        /// <returns>True if any content was updated, false otherwise</returns>
         public async Task<bool> UpdateContentByTypes(List<string> contentTypes)
         {
-            var typesToFetch = await ChecksumCheckup(contentTypes);
-            if (typesToFetch != null && typesToFetch.Count > 0)
+            try
             {
-                var fetchContent = new List<Task>();
-                foreach (string type in typesToFetch)
+                var typesToFetch = await ChecksumCheckup(contentTypes);
+                if (typesToFetch == null || typesToFetch.Count == 0)
                 {
-                    fetchContent.Add(FetchContentByType(type));
+                    return false;
                 }
-                if (fetchContent.Count > 0)
+
+                var fetchTasks = typesToFetch.Select(type => FetchContentByType(type)).ToList();
+                if (fetchTasks.Count > 0)
                 {
-                    await Task.WhenAll(fetchContent);
+                    await Task.WhenAll(fetchTasks);
+                    return true;
                 }
-                return true;
+                return false;
             }
-            else
+            catch (Exception ex)
             {
+                Debug.LogError($"Error updating content: {ex.Message}");
                 return false;
             }
         }
 
         /// <summary>
-        /// Takes content types we want to get checksum for.
+        /// Compares local and remote checksums for content types.
         /// </summary>
-        /// <param name="contentTypes"></param>
-        /// <returns>A list of content types thas has checksum mismatch and need to be updated.</returns>
+        /// <param name="contentTypes">List of content type names to check</param>
+        /// <returns>List of content types that need updating</returns>
         public async Task<List<string>> ChecksumCheckup(List<string> contentTypes)
         {
             var contentToUpdate = new List<string>();
             try
             {
-                // Loading config file
                 StrixSDKConfig config = StrixSDKConfig.Instance;
+                string clientID = PlayerPrefs.GetString("Strix_ClientID", string.Empty);
 
-                var buildType = config.branch;
-
-                var clientID = PlayerPrefs.GetString("Strix_ClientID", string.Empty);
                 if (string.IsNullOrEmpty(clientID))
                 {
-                    Debug.LogError("Error while making Strix's checksum checkup: client ID or Session ID is invalid.");
-                    return new List<string>();
+                    Debug.LogError("Error making checksum checkup: client ID is invalid.");
+                    return contentToUpdate;
                 }
 
-                var checkupBody = new Dictionary<string, object>()
+                var checkupBody = new Dictionary<string, object>
                 {
                     {"device", clientID},
                     {"secret", config.apiKey},
-                    {"build", buildType},
+                    {"build", config.branch},
                     {"tableNames", contentTypes}
                 };
-                var result = await Client.Req(API.ChecksumCheckup, checkupBody);
-                var doc = JsonConvert.DeserializeObject<Dictionary<string, object>>(result);
-                if (doc != null)
+
+                string result = await Client.Req(API.ChecksumCheckup, checkupBody);
+                var response = JsonConvert.DeserializeObject<Dictionary<string, object>>(result);
+
+                if (response == null || !(bool)response["success"])
                 {
-                    if ((bool)doc["success"])
+                    return contentToUpdate;
+                }
+
+                var checksums = JsonConvert.DeserializeObject<Dictionary<string, object>>(response["data"].ToString());
+                foreach (var field in checksums)
+                {
+                    int remoteChecksum = Convert.ToInt32(field.Value);
+                    int storedChecksum = Content.GetCacheChecksum(field.Key);
+
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Comparing checksums for '{field.Key}'. Remote: {remoteChecksum}, Local: {storedChecksum}");
+
+                    if (remoteChecksum != storedChecksum || storedChecksum == -1)
                     {
-                        var checksums = JsonConvert.DeserializeObject<Dictionary<string, object>>(doc["data"].ToString());
-
-                        // Iterate through each field in the data
-                        foreach (var field in checksums)
-                        {
-                            // Compare the checksum in data with storedChecksum
-                            int remoteChecksum = Convert.ToInt32(field.Value);
-                            int storedChecksum = Content.GetCacheChecksum(field.Key);
-
-                            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Comparing checksums for '{field.Key}'. Remote: {remoteChecksum}, Local: {storedChecksum}");
-
-                            if (remoteChecksum != storedChecksum || storedChecksum == -1)
-                            {
-                                Debug.LogWarning($"Checksum mismatch for table '{field.Key}'. Remote: {remoteChecksum}, Local: {storedChecksum}");
-                                contentToUpdate.Add(field.Key);
-                            }
-                            else
-                            {
-                                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Table '{field.Key}' is up to date!");
-                            }
-                        }
+                        Debug.LogWarning($"Checksum mismatch for table '{field.Key}'. Remote: {remoteChecksum}, Local: {storedChecksum}");
+                        contentToUpdate.Add(field.Key);
                     }
                 }
+
                 return contentToUpdate;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Error while checking for content updates for type '{contentTypes}': {ex.Message}");
+                Debug.LogError($"Error checking content updates: {ex.Message}");
                 return contentToUpdate;
             }
         }
 
+        /// <summary>
+        /// Fetches content for a specific type and updates local cache.
+        /// </summary>
+        /// <param name="contentType">The type of content to fetch</param>
+        /// <returns>True if successful, false otherwise</returns>
         public async Task<bool> FetchContentByType(string contentType)
         {
             try
             {
                 StrixSDKConfig config = StrixSDKConfig.Instance;
-                var buildType = config.branch;
 
-                var body = new Dictionary<string, object>()
+                var body = new Dictionary<string, object>
                 {
                     {"device", StrixSDK.Strix.clientID},
                     {"secret", config.apiKey},
-                    {"build", buildType},
-                    {"tableName", contentType},
+                    {"build", config.branch},
+                    {"tableName", contentType}
                 };
 
-                var result = await Client.Req(API.UpdateContent, body);
+                string result = await Client.Req(API.UpdateContent, body);
+                var response = JsonConvert.DeserializeObject<Dictionary<string, object>>(result);
 
-                var doc = JsonConvert.DeserializeObject<Dictionary<string, object>>(result);
-                if (doc != null)
+                if (response == null || !(bool)response["success"])
                 {
-                    int totalChecksum = 0;
+                    throw new Exception($"Content request failed for {contentType}. Please report to Strix support team.");
+                }
 
-                    if ((bool)doc["success"])
+                int totalChecksum = 0;
+                mediaIDs.Clear();
+                Content.ClearContent(contentType);
+
+                bool[] recacheFlags = new bool[8];
+                JArray data = response["data"] as JArray;
+
+                if (data != null)
+                {
+                    foreach (JObject contentItem in data)
                     {
-                        var data = doc["data"] as JArray;
-
-                        mediaIDs.Clear();
-                        Content.ClearContent(contentType); // <- if data will be null, we just clear the content. If not, we'll place a new content
-
-                        bool recache_Offers = false;
-                        bool recache_Tests = false;
-                        bool recache_Localization = false;
-                        bool recache_Entities = false;
-                        bool recache_StatTemplates = false;
-                        bool recache_PositionOffers = false;
-                        bool recache_Flows = false;
-                        bool recache_GameEvents = false;
-
-                        if (data != null)
-                        {
-                            // If Data isnt null, update the content and set dependent content to refresh
-                            foreach (JObject contentItem in data)
-                            {
-                                int itemChecksum = (int)contentItem["checksum"];
-
-                                switch (contentType)
-                                {
-                                    case "offers":
-                                        await ProcessOffersMedia(contentItem);
-                                        Content.SaveToFile(contentType, contentItem);
-                                        recache_Offers = true;
-                                        break;
-
-                                    case "entities":
-                                        await ProcessEntityConfigMedia(contentItem);
-                                        Content.SaveToFile(contentType, contentItem);
-                                        recache_Entities = true;
-                                        break;
-
-                                    case "abtests":
-                                        Content.SaveToFile(contentType, contentItem);
-                                        recache_Tests = true;
-                                        break;
-
-                                    case "localization":
-                                        Content.SaveToFile(contentType, contentItem);
-                                        recache_Localization = true;
-                                        break;
-
-                                    case "stattemplates":
-                                        Content.SaveToFile(contentType, contentItem);
-                                        recache_StatTemplates = true;
-                                        break;
-
-                                    case "events":
-                                        Content.SaveToFile(contentType, contentItem);
-                                        recache_GameEvents = true;
-                                        break;
-
-                                    case "positionedOffers":
-                                        Content.SaveToFile(contentType, contentItem);
-                                        recache_PositionOffers = true;
-                                        break;
-
-                                    case "flows":
-                                        await ProcessFlowMedia(contentItem);
-                                        Content.SaveToFile(contentType, contentItem);
-                                        recache_Flows = true;
-                                        break;
-
-                                    default:
-                                        break;
-                                }
-                                totalChecksum += itemChecksum;
-                            }
-                        }
-                        else
-                        {
-                            // If data is null, we just remove all the content of this type (a bit earlier), and just recache to sync
-                            switch (contentType)
-                            {
-                                case "offers":
-                                    recache_Offers = true;
-                                    break;
-
-                                case "entities":
-                                    recache_Entities = true;
-                                    break;
-
-                                case "abtests":
-                                    recache_Tests = true;
-                                    break;
-
-                                case "localization":
-                                    recache_Localization = true;
-                                    break;
-
-                                case "stattemplates":
-                                    recache_StatTemplates = true;
-                                    break;
-
-                                case "events":
-                                    recache_GameEvents = true;
-                                    break;
-
-                                case "positionedOffers":
-                                    recache_PositionOffers = true;
-                                    break;
-
-                                case "flows":
-                                    recache_Flows = true;
-                                    break;
-
-                                default:
-                                    break;
-                            }
-                        }
-
-                        Content.SaveCacheChecksum(contentType, totalChecksum);
-
-                        if (recache_Offers || recache_PositionOffers)
-                        {
-                            Content.RecacheExistingOffers();
-                            Content.ResolveCachedMedia(mediaIDs, "offers");
-                        }
-                        if (recache_Tests)
-                        {
-                            Content.RecacheExistingTests();
-                        }
-                        if (recache_Localization)
-                        {
-                            // No implementation for localization because there is no cache yet that we need to reload
-                            Content.RecacheExistingOffers(); // But we still need to refresh offers in case some loc changed for any offer
-                        }
-                        if (recache_Entities)
-                        {
-                            Content.RecacheExistingEntities();
-                            Content.RecacheExistingOffers();
-                            Content.ResolveCachedMedia(mediaIDs, "entities");
-                        }
-                        if (recache_StatTemplates)
-                        {
-                            Content.RecacheExistingStatisticsTemplates();
-                        }
-                        if (recache_Flows)
-                        {
-                            Content.RecacheExistingFlows();
-                            Content.ResolveCachedMedia(mediaIDs, "flows");
-                        }
-                        if (recache_GameEvents)
-                        {
-                            Content.RecacheExistingGameEvents();
-                            Content.ResolveCachedMedia(mediaIDs, "events");
-                        }
-                    }
-                    else
-                    {
-                        throw new Exception("Content request returned 'false' in 'success' field! Please report to Strix support team.");
+                        totalChecksum += (int)contentItem["checksum"];
+                        await ProcessContent(contentType, contentItem, recacheFlags);
                     }
                 }
                 else
                 {
-                    throw new Exception("Content request returned as null! Please report to Strix support team.");
+                    // Handle removed content by setting appropriate recache flag
+                    SetRecacheFlag(contentType, recacheFlags);
                 }
+
+                Content.SaveCacheChecksum(contentType, totalChecksum);
+                await UpdateDependentContent(recacheFlags, mediaIDs);
+
                 return true;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Could not fetch content: {ex.Message}");
+                Debug.LogError($"Could not fetch content for {contentType}: {ex.Message}");
                 return false;
             }
         }
 
-        #region Processing methods
+        #region Content Processing Methods
+
+        private async Task ProcessContent(string contentType, JObject contentItem, bool[] recacheFlags)
+        {
+            switch (contentType)
+            {
+                case "offers":
+                    await ProcessOffersMedia(contentItem);
+                    Content.SaveToFile(contentType, contentItem);
+                    recacheFlags[0] = true; // offers
+                    break;
+
+                case "entities":
+                    await ProcessEntityConfigMedia(contentItem);
+                    Content.SaveToFile(contentType, contentItem);
+                    recacheFlags[1] = true; // entities
+                    break;
+
+                case "abtests":
+                    Content.SaveToFile(contentType, contentItem);
+                    recacheFlags[2] = true; // tests
+                    break;
+
+                case "localization":
+                    Content.SaveToFile(contentType, contentItem);
+                    recacheFlags[3] = true; // localization
+                    break;
+
+                case "stattemplates":
+                    Content.SaveToFile(contentType, contentItem);
+                    recacheFlags[4] = true; // stat templates
+                    break;
+
+                case "events":
+                    Content.SaveToFile(contentType, contentItem);
+                    recacheFlags[5] = true; // game events
+                    break;
+
+                case "positionedOffers":
+                    Content.SaveToFile(contentType, contentItem);
+                    recacheFlags[6] = true; // positioned offers
+                    break;
+
+                case "flows":
+                    await ProcessFlowMedia(contentItem);
+                    Content.SaveToFile(contentType, contentItem);
+                    recacheFlags[7] = true; // flows
+                    break;
+            }
+        }
+
+        private void SetRecacheFlag(string contentType, bool[] recacheFlags)
+        {
+            switch (contentType)
+            {
+                case "offers": recacheFlags[0] = true; break;
+                case "entities": recacheFlags[1] = true; break;
+                case "abtests": recacheFlags[2] = true; break;
+                case "localization": recacheFlags[3] = true; break;
+                case "stattemplates": recacheFlags[4] = true; break;
+                case "events": recacheFlags[5] = true; break;
+                case "positionedOffers": recacheFlags[6] = true; break;
+                case "flows": recacheFlags[7] = true; break;
+            }
+        }
+
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+
+        private async Task UpdateDependentContent(bool[] recacheFlags, HashSet<string> mediaIDs)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        {
+            if (recacheFlags[0] || recacheFlags[6]) // offers or positioned offers
+            {
+                Content.RecacheExistingOffers();
+                Content.ResolveCachedMedia(mediaIDs.ToList(), "offers");
+            }
+            if (recacheFlags[1]) // entities
+            {
+                Content.RecacheExistingEntities();
+                Content.RecacheExistingOffers();
+                Content.ResolveCachedMedia(mediaIDs.ToList(), "entities");
+            }
+            if (recacheFlags[2]) // tests
+            {
+                Content.RecacheExistingTests();
+            }
+            if (recacheFlags[3]) // localization
+            {
+                Content.RecacheExistingOffers();
+            }
+            if (recacheFlags[4]) // stat templates
+            {
+                Content.RecacheExistingStatisticsTemplates();
+            }
+            if (recacheFlags[5]) // game events
+            {
+                Content.RecacheExistingGameEvents();
+                Content.ResolveCachedMedia(mediaIDs.ToList(), "events");
+            }
+            if (recacheFlags[7]) // flows
+            {
+                Content.RecacheExistingFlows();
+                Content.ResolveCachedMedia(mediaIDs.ToList(), "flows");
+            }
+        }
 
         private async Task ProcessFlowMedia(JToken flow)
         {
@@ -353,52 +317,37 @@ namespace StrixSDK.Runtime.Db
         private async Task TraverseFlowNodes(Node node)
         {
             await ProcessFlowNode(node);
-            if (node.Subnodes.Count > 0)
+
+            if (node.Subnodes != null && node.Subnodes.Count > 0)
             {
-                foreach (var n in node.Subnodes)
+                foreach (var subnode in node.Subnodes)
                 {
-                    await TraverseFlowNodes(n);
+                    await TraverseFlowNodes(subnode);
                 }
             }
         }
 
         private async Task ProcessFlowNode(Node flowNode)
         {
+            if (flowNode?.Data == null) return;
+
             foreach (var item in flowNode.Data)
             {
-                if (item.Value.GetType() == typeof(string) && item.Value.ToString().StartsWith("https://storage.googleapis.com/"))
+                if (item.Value is string fileUrl && fileUrl.StartsWith("https://storage.googleapis.com/"))
                 {
-                    var fileUrl = (string)item.Value;
-                    if (!string.IsNullOrEmpty(fileUrl))
+                    await ProcessRemoteFile(fileUrl, "flows", fileName =>
                     {
-                        // Extract the file name from the URL
-                        var fileName = Path.GetFileName(fileUrl);
-
-                        // Check if the file already exists in the cache
-                        if (Content.DoesMediaExist(fileName))
-                        {
-                            // If the file exists, update the segment value to the hash directly
-                            flowNode.Data["value"] = fileName;
-                            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"File {fileName} already exists in cache, skipping download.");
-                        }
-                        else
-                        {
-                            var base64File = await DownloadFileAsBase64(fileUrl);
-                            if (!string.IsNullOrEmpty(base64File))
-                            {
-                                var hash = Content.CacheMedia(base64File, "flows");
-                                flowNode.Data["value"] = hash;
-                                mediaIDs.Add(hash);
-                            }
-                        }
-                    }
+                        flowNode.Data["value"] = fileName;
+                    });
                 }
             }
         }
 
         private async Task ProcessEntityConfigMedia(JToken entity)
         {
-            var entityConfig = entity["config"].ToObject<RawConfigValue[]>();
+            var entityConfig = entity["config"]?.ToObject<RawConfigValue[]>();
+            if (entityConfig == null) return;
+
             foreach (var config in entityConfig)
             {
                 await ProcessRawConfigValue(config);
@@ -407,36 +356,20 @@ namespace StrixSDK.Runtime.Db
 
         private async Task ProcessRawConfigValue(RawConfigValue configValue)
         {
-            if (configValue.Type == "image" || configValue.Type == "video" || configValue.Type == "sound" || configValue.Type == "any file")
-            {
-                if (configValue.Segments != null)
-                {
-                    foreach (var segment in configValue.Segments)
-                    {
-                        var fileUrl = segment.Value;
-                        if (!string.IsNullOrEmpty(fileUrl))
-                        {
-                            // Extract the file name from the URL
-                            var fileName = Path.GetFileName(fileUrl);
+            if (configValue == null) return;
 
-                            // Check if the file already exists in the cache
-                            if (Content.DoesMediaExist(fileName))
-                            {
-                                // If the file exists, update the segment value to the hash directly
-                                segment.Value = fileName;
-                                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"File {fileName} already exists in cache, skipping download.");
-                            }
-                            else
-                            {
-                                var base64File = await DownloadFileAsBase64(fileUrl);
-                                if (!string.IsNullOrEmpty(base64File))
-                                {
-                                    var hash = Content.CacheMedia(base64File, "entities");
-                                    segment.Value = hash;
-                                    mediaIDs.Add(hash);
-                                }
-                            }
-                        }
+            if (IsMediaType(configValue.Type) && configValue.Segments != null)
+            {
+                foreach (var segment in configValue.Segments)
+                {
+                    string fileUrl = segment.Value;
+                    if (!string.IsNullOrEmpty(fileUrl))
+                    {
+                        await ProcessRemoteFile(fileUrl, "entities", fileName =>
+                        {
+                            segment.Value = fileName;
+                            mediaIDs.Add(fileName);
+                        });
                     }
                 }
             }
@@ -450,60 +383,76 @@ namespace StrixSDK.Runtime.Db
             }
         }
 
+        private bool IsMediaType(string type)
+        {
+            return type == "image" || type == "video" || type == "sound" || type == "any file";
+        }
+
         private async Task ProcessOffersMedia(JToken offer)
         {
             var iconUrl = offer["icon"]?.ToString();
             if (!string.IsNullOrEmpty(iconUrl))
             {
-                // Extract the file name from the URL
-                var fileName = Path.GetFileName(iconUrl);
+                await ProcessRemoteFile(iconUrl, "offers", fileName =>
+                {
+                    offer["icon"] = fileName;
+                });
+            }
+        }
 
-                // Check if the file already exists in the cache
+        private async Task ProcessRemoteFile(string url, string mediaType, Action<string> onSuccess)
+        {
+            if (string.IsNullOrEmpty(url)) return;
+
+            try
+            {
+                // Extract filename from URL
+                string fileName = Path.GetFileName(url);
+
+                // Check if file already exists in cache
                 if (Content.DoesMediaExist(fileName))
                 {
-                    // If the file exists, update the offer icon to the hash directly
-                    offer["icon"] = fileName;
+                    onSuccess(fileName);
                     StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"File {fileName} already exists in cache, skipping download.");
+                    return;
                 }
-                else
+
+                // Download file
+                string base64File = await DownloadFileAsBase64(url);
+                if (!string.IsNullOrEmpty(base64File))
                 {
-                    var base64Image = await DownloadFileAsBase64(iconUrl);
-                    if (!string.IsNullOrEmpty(base64Image))
-                    {
-                        var hash = Content.CacheMedia(base64Image, "offers");
-                        offer["icon"] = hash;
-                        mediaIDs.Add(hash);
-                    }
+                    string hash = Content.CacheMedia(base64File, mediaType);
+                    onSuccess(hash);
+                    mediaIDs.Add(hash);
                 }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error processing remote file {url}: {ex.Message}");
             }
         }
 
         private async Task<string> DownloadFileAsBase64(string url)
         {
-            using (HttpClient client = new HttpClient())
+            try
             {
-                try
+                var response = await httpClient.GetAsync(url);
+                response.EnsureSuccessStatusCode();
+
+                using (var stream = await response.Content.ReadAsStreamAsync())
+                using (var reader = new StreamReader(stream))
                 {
-                    var response = await client.GetAsync(url);
-                    response.EnsureSuccessStatusCode();
-                    using (var stream = await response.Content.ReadAsStreamAsync())
-                    {
-                        using (var reader = new StreamReader(stream))
-                        {
-                            // Read the entire content of the .txt file which contains the base64 string
-                            string base64String = await reader.ReadToEndAsync();
-                            return base64String;
-                        }
-                    }
+                    // Read the entire content of the file which contains the base64 string
+                    return await reader.ReadToEndAsync();
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error downloading file from {url}: {ex.Message}");
-                    return null;
-                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error downloading file from {url}: {ex.Message}");
+                return null;
             }
         }
 
-        #endregion Processing methods
+        #endregion Content Processing Methods
     }
 }

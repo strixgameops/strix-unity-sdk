@@ -6,226 +6,247 @@ using UnityEngine;
 using StrixSDK.Runtime.Models;
 using Newtonsoft.Json.Linq;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace StrixSDK.Runtime.Utils
 {
     public static class Content
     {
+        private static readonly string BaseDirectoryPath = Path.Combine(Application.persistentDataPath, "Plugins", "StrixSDK", "StrixData");
+        private static readonly string MediaBasePath = Path.Combine(BaseDirectoryPath, "cached", "media");
+
+        #region Content Recaching Methods
+
         public static void RecacheExistingStatisticsTemplates()
         {
-            var templates = LoadAllFromFile("stattemplates");
-            var result = new List<ElementTemplate>();
-
-            foreach (var tData in templates)
+            try
             {
-                var json = JsonConvert.SerializeObject(tData);
-                var temp = JsonConvert.DeserializeObject<ElementTemplate>(json);
-                result.Add(temp);
+                var templates = LoadAllFromFile("stattemplates");
+                var result = new List<ElementTemplate>();
+
+                foreach (var tData in templates)
+                {
+                    var json = JsonConvert.SerializeObject(tData);
+                    var temp = JsonConvert.DeserializeObject<ElementTemplate>(json);
+                    result.Add(temp);
+                }
+                PlayerManager.Instance._templates = result.ToArray();
             }
-            PlayerManager.Instance._templates = result.ToArray();
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to recache statistics templates: {ex.Message}");
+            }
         }
 
         public static void RecacheExistingOffers()
         {
-            OffersManager.Instance.RefreshOffers();
+            try
+            {
+                OffersManager.Instance.RefreshOffers();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to recache offers: {ex.Message}");
+            }
         }
 
         public static void RecacheExistingFlows()
         {
-            FlowsManager.Instance.RefreshFlows();
+            try
+            {
+                FlowsManager.Instance.RefreshFlows();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to recache flows: {ex.Message}");
+            }
         }
 
         public static void RecacheExistingGameEvents()
         {
-            GameEventsManager.Instance.RefreshEvents();
+            try
+            {
+                GameEventsManager.Instance.RefreshEvents();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to recache game events: {ex.Message}");
+            }
         }
 
         public static void RecacheExistingEntities()
         {
-            EntityManager.Instance.RefreshEntities();
+            try
+            {
+                EntityManager.Instance.RefreshEntities();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to recache entities: {ex.Message}");
+            }
         }
 
         public static void RecacheExistingTests()
         {
-            PlayerManager.Instance.RefreshABTests();
+            try
+            {
+                PlayerManager.Instance.RefreshABTests();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to recache AB tests: {ex.Message}");
+            }
         }
 
-        // Save fetched resources to the persistent storage
+        #endregion Content Recaching Methods
+
+        #region File Operations
+
         public static void BulkSaveToFile(string tableName, List<object> documents)
         {
+            if (documents == null || documents.Count == 0) return;
+
             try
             {
                 foreach (var document in documents)
                 {
-                    SaveToFile(tableName, (JObject)document);
+                    if (document is JObject jObject)
+                    {
+                        SaveToFile(tableName, jObject);
+                    }
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogError("Failed to save documents to file: " + ex.Message);
+                Debug.LogError($"Failed to bulk save documents to {tableName}: {ex.Message}");
             }
         }
 
         public static void SaveToFile(string tableName, JObject document)
         {
+            if (document == null || document["id"] == null)
+            {
+                Debug.LogWarning($"SaveToFile failed. Document is null or missing id field.");
+                return;
+            }
+
             try
             {
-                if (document == null)
+                string id = document["id"].ToString().Replace("|", "_");
+                string directoryPath = GetTableDirectoryPath(tableName);
+                EnsureDirectoryExists(directoryPath);
+
+                // Handle entity configs separately
+                JArray configs = null;
+                if (tableName == "entities" && document["config"] != null)
                 {
-                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"SaveToFile failed. Document is null.");
+                    configs = (JArray)document["config"];
+                    document.Remove("config");
                 }
 
-                string directoryPath = Path.Combine(Application.persistentDataPath, "Plugins", $"StrixSDK/StrixData/{tableName}");
-                if (!Directory.Exists(directoryPath))
+                // Save main document
+                string filePath = Path.Combine(directoryPath, $"{id}.txt");
+                SaveJsonToFile(filePath, document);
+
+                // Save config documents if they exist
+                if (configs != null)
                 {
-                    Directory.CreateDirectory(directoryPath);
-                }
-
-                // Ensure the document has an 'id' field
-                if (document != null && document["id"] != null)
-                {
-                    string id = document["id"].ToString();
-
-                    // Some ids may have | in their names indicating they are bound to something. Handle those scenarios.
-                    id = id.Replace("|", "_");
-
-                    // Remove the "config" field from the main document
-                    JArray configs = null;
-                    if (tableName == "entities" && document["config"] != null)
+                    foreach (JObject configItem in configs)
                     {
-                        configs = (JArray)document["config"];
-                        document.Remove("config");
-                    }
-
-                    string filePath = Path.Combine(directoryPath, $"{id}.txt");
-                    string jsonContent = JsonConvert.SerializeObject(document, Formatting.Indented);
-                    string base64Content = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(jsonContent));
-                    File.WriteAllText(filePath, base64Content);
-
-                    //StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Data from {tableName} with ID {id} saved to {filePath}");
-
-                    // Save the config documents separately if it exists
-                    if (configs != null)
-                    {
-                        foreach (JObject configItem in configs)
+                        if (configItem["id"] != null)
                         {
-                            if (configItem["id"] != null)
-                            {
-                                string configId = configItem["id"].ToString();
-                                string configFilePath = Path.Combine(directoryPath, $"{id}_{configId}_conf.txt");
-
-                                string configJsonContent = JsonConvert.SerializeObject(configItem, Formatting.Indented);
-                                string configBase64Content = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(configJsonContent));
-                                File.WriteAllText(configFilePath, configBase64Content);
-
-                                //StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Config data from {tableName} with ID {id} and config ID {configId} saved to {configFilePath}");
-                            }
-                            else
-                            {
-                                Debug.LogWarning($"Config item does not have an 'id' field: {JsonConvert.SerializeObject(configItem)}");
-                            }
+                            string configId = configItem["id"].ToString();
+                            string configFilePath = Path.Combine(directoryPath, $"{id}_{configId}_conf.txt");
+                            SaveJsonToFile(configFilePath, configItem);
                         }
                     }
-                }
-                else
-                {
-                    Debug.LogWarning($"Document is null or does not have an 'id' field: {JsonConvert.SerializeObject(document)}");
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogError("Failed to save documents to file: " + ex.Message + $" Arguments: {tableName} {document}");
+                Debug.LogError($"Failed to save document to {tableName}: {ex.Message}");
             }
+        }
+
+        private static void SaveJsonToFile(string filePath, JObject document)
+        {
+            string jsonContent = JsonConvert.SerializeObject(document, Formatting.Indented);
+            string base64Content = Convert.ToBase64String(Encoding.UTF8.GetBytes(jsonContent));
+            File.WriteAllText(filePath, base64Content);
         }
 
         public static string CacheMedia(string base64File, string mediaType)
         {
+            if (string.IsNullOrEmpty(base64File)) return null;
+
             try
             {
-                string directoryPath = Path.Combine(Application.persistentDataPath, "Plugins", "StrixSDK", "StrixData", "cached", "media", mediaType);
-                if (!Directory.Exists(directoryPath))
-                {
-                    Directory.CreateDirectory(directoryPath);
-                }
+                string directoryPath = Path.Combine(MediaBasePath, mediaType);
+                EnsureDirectoryExists(directoryPath);
 
                 // Compute the hash of the base64 file content to use as ID
-                string id = ComputeHash(base64File);
-
-                // Handle cases where the hash contains invalid path characters
-                id = id.Replace("|", "_");
-
+                string id = ComputeHash(base64File).Replace("|", "_");
                 string filePath = Path.Combine(directoryPath, $"{id}.txt");
+
                 File.WriteAllText(filePath, base64File);
-
-                //StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Media with ID {id} saved to {filePath}");
-
                 return id;
             }
             catch (Exception ex)
             {
-                Debug.LogError("Failed to cache media to file: " + ex.Message);
+                Debug.LogError($"Failed to cache media: {ex.Message}");
                 return null;
             }
         }
 
         public static string GetCachedMedia(string id, string mediaType)
         {
+            if (string.IsNullOrEmpty(id)) return null;
+
             try
             {
-                string directoryPath = Path.Combine(Application.persistentDataPath, "Plugins", "StrixSDK", "StrixData", "cached", "media", mediaType);
+                string directoryPath = Path.Combine(MediaBasePath, mediaType);
                 string filePath = Path.Combine(directoryPath, $"{id}.txt");
 
                 if (File.Exists(filePath))
                 {
-                    string base64Content = File.ReadAllText(filePath);
-                    //StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Media with ID {id} found at {filePath}");
-                    return base64Content;
+                    return File.ReadAllText(filePath);
                 }
-                else
-                {
-                    Debug.LogWarning($"Media with ID {id} not found at {filePath}");
-                    return null;
-                }
+
+                Debug.LogWarning($"Media with ID {id} not found at {filePath}");
+                return null;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Failed to get cached media with ID {id}: {ex.Message}");
+                Debug.LogError($"Failed to get cached media {id}: {ex.Message}");
                 return null;
             }
         }
 
         public static void ResolveCachedMedia(List<string> mediaIDs, string mediaType)
         {
-            // Remove media files we should not cache anymore
+            if (mediaIDs == null) return;
+
             try
             {
-                string directoryPath = Path.Combine(Application.persistentDataPath, "Plugins", "StrixSDK", "StrixData", "cached", "media", mediaType);
+                string directoryPath = Path.Combine(MediaBasePath, mediaType);
+                if (!Directory.Exists(directoryPath)) return;
 
-                if (Directory.Exists(directoryPath))
+                HashSet<string> validMediaIds = new HashSet<string>(mediaIDs);
+                var files = Directory.GetFiles(directoryPath, "*.txt");
+
+                foreach (var file in files)
                 {
-                    var files = Directory.GetFiles(directoryPath, "*.txt");
-
-                    foreach (var file in files)
+                    string fileName = Path.GetFileNameWithoutExtension(file);
+                    if (!validMediaIds.Contains(fileName))
                     {
-                        string fileName = Path.GetFileNameWithoutExtension(file);
-
-                        if (!mediaIDs.Contains(fileName))
-                        {
-                            File.Delete(file);
-                            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Deleted excess cached media file: {file}");
-                        }
+                        File.Delete(file);
+                        Utils.StrixDebugLogMessage($"Deleted unused cached media file: {file}");
                     }
-
-                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"ResolveCachedMedia completed for media type: {mediaType}");
-                }
-                else
-                {
-                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"No need to resolve cached media. Directory not found: {directoryPath}");
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Failed to resolve cached media for media type {mediaType}: {ex.Message}");
+                Debug.LogError($"Failed to resolve cached media for {mediaType}: {ex.Message}");
             }
         }
 
@@ -233,27 +254,19 @@ namespace StrixSDK.Runtime.Utils
         {
             try
             {
-                string directoryPath = Path.Combine(Application.persistentDataPath, "Plugins", "StrixSDK", "StrixData", tableName);
+                string directoryPath = GetTableDirectoryPath(tableName);
+                if (!Directory.Exists(directoryPath)) return;
 
-                if (Directory.Exists(directoryPath))
+                foreach (var file in Directory.GetFiles(directoryPath, "*.txt"))
                 {
-                    var files = Directory.GetFiles(directoryPath, "*.txt");
-
-                    foreach (var file in files)
-                    {
-                        File.Delete(file);
-                    }
-
-                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"ClearContent completed for table: {tableName}");
+                    File.Delete(file);
                 }
-                else
-                {
-                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Directory not found: {directoryPath}");
-                }
+
+                Utils.StrixDebugLogMessage($"Cleared content for table: {tableName}");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Failed to clear content for table {tableName}: {ex.Message}");
+                Debug.LogError($"Failed to clear content for {tableName}: {ex.Message}");
             }
         }
 
@@ -261,20 +274,15 @@ namespace StrixSDK.Runtime.Utils
         {
             try
             {
-                string directoryPath = Path.Combine(Application.persistentDataPath, "Plugins", "StrixSDK", "StrixData", "cached");
-                if (!Directory.Exists(directoryPath))
-                {
-                    Directory.CreateDirectory(directoryPath);
-                }
+                string directoryPath = Path.Combine(BaseDirectoryPath, "cached");
+                EnsureDirectoryExists(directoryPath);
 
                 string filePath = Path.Combine(directoryPath, $"{tableName}-checksum.txt");
                 File.WriteAllText(filePath, checksum.ToString());
-
-                //StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Media with ID {tableName}-checksum.txt saved to {filePath}");
             }
             catch (Exception ex)
             {
-                Debug.LogError("Failed to cache media to file: " + ex.Message);
+                Debug.LogError($"Failed to save cache checksum for {tableName}: {ex.Message}");
             }
         }
 
@@ -282,7 +290,7 @@ namespace StrixSDK.Runtime.Utils
         {
             try
             {
-                string directoryPath = Path.Combine(Application.persistentDataPath, "Plugins", "StrixSDK", "StrixData", "cached");
+                string directoryPath = Path.Combine(BaseDirectoryPath, "cached");
                 string filePath = Path.Combine(directoryPath, $"{tableName}-checksum.txt");
 
                 if (File.Exists(filePath))
@@ -292,19 +300,11 @@ namespace StrixSDK.Runtime.Utils
                     {
                         return checksum;
                     }
-                    else
-                    {
-                        Debug.LogError($"Failed to parse checksum from file {filePath}");
-                    }
-                }
-                else
-                {
-                    Debug.LogWarning($"Checksum file {filePath} does not exist");
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Failed to read checksum from file: {ex.Message}");
+                Debug.LogError($"Failed to read checksum for {tableName}: {ex.Message}");
             }
 
             return -1;
@@ -312,17 +312,131 @@ namespace StrixSDK.Runtime.Utils
 
         public static bool DoesMediaExist(string id)
         {
+            if (string.IsNullOrEmpty(id)) return false;
+
             try
             {
-                string directoryPath = Path.Combine(Application.persistentDataPath, "Plugins", "StrixSDK", "StrixData", "cached", "media");
-                string filePath = Path.Combine(directoryPath, $"{id.Replace("|", "_")}.txt");
+                // Check all media directories
+                string directory = MediaBasePath;
+                if (!Directory.Exists(directory)) return false;
 
-                return File.Exists(filePath);
+                id = id.Replace("|", "_");
+
+                // Check in all media type subdirectories
+                foreach (var typeDir in Directory.GetDirectories(directory))
+                {
+                    string filePath = Path.Combine(typeDir, $"{id}.txt");
+                    if (File.Exists(filePath))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
             }
             catch (Exception ex)
             {
-                Debug.LogError("Error checking if media exists: " + ex.Message);
+                Debug.LogError($"Error checking if media {id} exists: {ex.Message}");
                 return false;
+            }
+        }
+
+        public static T LoadFromFile<T>(string tableName, string id) where T : class
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+
+            try
+            {
+                id = id.Replace("|", "_");
+                string filePath = Path.Combine(GetTableDirectoryPath(tableName), $"{id}.txt");
+
+                if (File.Exists(filePath))
+                {
+                    string base64Content = File.ReadAllText(filePath);
+                    string jsonContent = Encoding.UTF8.GetString(Convert.FromBase64String(base64Content));
+                    return JsonConvert.DeserializeObject<T>(jsonContent);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to load {tableName}/{id}: {ex.Message}");
+            }
+
+            return null;
+        }
+
+        public static List<JObject> LoadAllFromFile(string tableName)
+        {
+            var documents = new List<JObject>();
+
+            try
+            {
+                string directoryPath = GetTableDirectoryPath(tableName);
+                EnsureDirectoryExists(directoryPath);
+
+                foreach (var file in Directory.GetFiles(directoryPath, "*.txt"))
+                {
+                    // Skip .meta files and _conf entity files
+                    if (Path.GetExtension(file) == ".meta" || file.EndsWith("_conf.txt"))
+                    {
+                        continue;
+                    }
+
+                    string base64Content = File.ReadAllText(file);
+                    string jsonContent = Encoding.UTF8.GetString(Convert.FromBase64String(base64Content));
+                    var document = JsonConvert.DeserializeObject<JObject>(jsonContent);
+                    documents.Add(document);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to load all from {tableName}: {ex.Message}");
+            }
+
+            return documents;
+        }
+
+        public static void DeleteFile(string tableName, string id)
+        {
+            if (string.IsNullOrEmpty(id)) return;
+
+            try
+            {
+                id = id.Replace("|", "_");
+                string directoryPath = GetTableDirectoryPath(tableName);
+
+                var filesToDelete = Directory.GetFiles(directoryPath, $"{id}*.txt");
+                foreach (string file in filesToDelete)
+                {
+                    File.Delete(file);
+                    Utils.StrixDebugLogMessage($"Deleted file: {file}");
+                }
+
+                if (filesToDelete.Length == 0)
+                {
+                    Debug.LogWarning($"No files found for {tableName}/{id}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to delete {tableName}/{id}: {ex.Message}");
+            }
+        }
+
+        #endregion File Operations
+
+        #region Helper Methods
+
+        private static string GetTableDirectoryPath(string tableName)
+        {
+            return Path.Combine(BaseDirectoryPath, tableName);
+        }
+
+        private static void EnsureDirectoryExists(string directoryPath)
+        {
+            if (!Directory.Exists(directoryPath))
+            {
+                Directory.CreateDirectory(directoryPath);
             }
         }
 
@@ -330,11 +444,9 @@ namespace StrixSDK.Runtime.Utils
         {
             using (SHA256 sha256Hash = SHA256.Create())
             {
-                // Compute hash as byte array
-                byte[] data = sha256Hash.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
+                byte[] data = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(input));
 
-                // Convert byte array to a string
-                var sBuilder = new System.Text.StringBuilder();
+                var sBuilder = new StringBuilder();
                 foreach (var t in data)
                 {
                     sBuilder.Append(t.ToString("x2"));
@@ -344,122 +456,7 @@ namespace StrixSDK.Runtime.Utils
             }
         }
 
-        public static T LoadFromFile<T>(string tableName, string id) where T : class
-        {
-            try
-            {
-                // Some ids may have | in their names indicating they are bound to something. Handle those scenarios.
-                id = id.Replace("|", "_");
-
-                string directoryPath = Path.Combine(Application.persistentDataPath, "Plugins", $"StrixSDK/StrixData/{tableName}");
-                string filePath = Path.Combine(directoryPath, $"{id}.txt");
-
-                if (!Directory.Exists(directoryPath))
-                {
-                    Directory.CreateDirectory(directoryPath);
-                }
-
-                if (File.Exists(filePath))
-                {
-                    string base64Content = File.ReadAllText(filePath);
-                    string jsonContent = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(base64Content));
-                    T document = JsonConvert.DeserializeObject<T>(jsonContent);
-
-                    //StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Data from {tableName} with ID {id} loaded from {filePath}");
-                    return document;
-                }
-                else
-                {
-                    Debug.LogWarning($"File {filePath} does not exist.");
-                    return null;
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError("Failed to load document from file: " + ex.Message + $" Arguments: {tableName} {id}");
-                return null;
-            }
-        }
-
-        public static List<JObject> LoadAllFromFile(string tableName)
-        {
-            var documents = new List<JObject>();
-
-            try
-            {
-                string directoryPath = Path.Combine(Application.persistentDataPath, "Plugins", $"StrixSDK/StrixData/{tableName}");
-
-                if (!Directory.Exists(directoryPath))
-                {
-                    Directory.CreateDirectory(directoryPath);
-                }
-
-                if (Directory.Exists(directoryPath))
-                {
-                    var files = Directory.GetFiles(directoryPath);
-                    foreach (var file in files)
-                    {
-                        // Skip .meta files and _conf entity files
-                        if (Path.GetExtension(file) == ".meta" || file.EndsWith("_conf.txt"))
-                        {
-                            continue;
-                        }
-
-                        string base64Content = File.ReadAllText(file);
-                        string jsonContent = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(base64Content));
-                        var document = JsonConvert.DeserializeObject<JObject>(jsonContent);
-                        documents.Add(document);
-
-                        //StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Data from {tableName} loaded from {file}");
-                    }
-                }
-                else
-                {
-                    Debug.LogWarning($"Directory {directoryPath} does not exist.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError("Failed to load documents from files: " + ex.Message + $" Arguments: {tableName}");
-            }
-
-            return documents;
-        }
-
-        public static void DeleteFile(string tableName, string id)
-        {
-            try
-            {
-                // Some ids may have | in their names indicating they are bound to something. Handle those scenarios.
-                id = id.Replace("|", "_");
-
-                string directoryPath = Path.Combine(Application.persistentDataPath, "Plugins", $"StrixSDK/StrixData/{tableName}");
-
-                // Get all files in the directory that start with the id and have a .txt extension
-                string[] files = Directory.GetFiles(directoryPath, $"{id}*.txt");
-
-                // Check if any files were found
-                if (files.Length > 0)
-                {
-                    foreach (string file in files)
-                    {
-                        if (File.Exists(file))
-                        {
-                            File.Delete(file);
-                            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"File {file} deleted successfully.");
-                        }
-                    }
-                }
-                else
-                {
-                    Debug.LogWarning($"No files found with ID {id} in table {tableName}.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"Failed to delete files with ID {id}: {ex.Message} Arguments: {tableName} {id}");
-            }
-        }
+        #endregion Helper Methods
     }
 
     public static class AnalyticsCache

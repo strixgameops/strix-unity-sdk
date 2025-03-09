@@ -29,6 +29,7 @@ namespace StrixSDK
         [JsonProperty("pricing")]
         public OfferPricing Pricing { get; set; } // For internal use. Contains the full pricing table (discount already applied for real-money prices, not-applied for entity-based amount)
 
+        [JsonProperty("price")]
         public OfferPrice Price { get; set; } // Synthethic field which is made when Get methods called and contains user's currency price item. If not a real-money IAP,
 
         [JsonProperty("purchaseLimit")]
@@ -117,7 +118,10 @@ namespace StrixSDK
 
     public class OfferPrice
     {
+        [JsonProperty("value")]
         public float Value { get; set; } // Price for real-money IAP, "amount" for hard/soft currency offers
+
+        [JsonProperty("currency")]
         public string Currency { get; set; } // E.g. "USD" for real-money IAPs / "myHardCurrencyGemsId" for offer that costs "49 gems"
     }
 

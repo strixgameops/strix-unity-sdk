@@ -179,7 +179,7 @@ namespace StrixSDK
         }
 
         // offerEvent
-        public static async Task<string> SendOfferBuyEvent(string offerID, float price, string currency, Dictionary<string, object> customData)
+        public static async Task<string> SendOfferBuyEvent(string offerID, float price, int discount, string currency, Dictionary<string, object> customData)
         {
             if (String.IsNullOrEmpty(offerID))
             {
@@ -203,6 +203,7 @@ namespace StrixSDK
                     { "offerID", offerID },
                     { "price", price },
                     { "currency", currency },
+                { "discount", discount }
                 };
 
             customData = FlowsManager.Instance.ExecuteFlow_AnalyticsEventSend("offerEvent", customData);
@@ -223,7 +224,7 @@ namespace StrixSDK
         }
 
         // offerShown event
-        public static async Task<string> SendOfferShownEvent(string offerID, float price, Dictionary<string, object> customData)
+        public static async Task<string> SendOfferShownEvent(string offerID, float price, int discount, Dictionary<string, object> customData)
         {
             if (String.IsNullOrEmpty(offerID))
             {

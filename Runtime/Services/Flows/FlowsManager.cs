@@ -13,6 +13,7 @@ using System.Data;
 using UnityEngine.Localization.SmartFormat.PersistentVariables;
 using System.Globalization;
 using System.Threading;
+using StrixSDK.Runtime;
 
 namespace StrixSDK.Runtime
 {
@@ -175,15 +176,15 @@ namespace StrixSDK.Runtime
 
         public Offer ExecuteFlow_OfferShown(Offer offer)
         {
+            Offer offerObject = JsonConvert.DeserializeObject<Offer>(JsonConvert.SerializeObject(offer));
+
             List<Flow> flows = _flows.Where(flow =>
             flow.Nodes.Id == "t_offerShow"
             &&
             flow.Nodes.Data.ContainsKey("offerID")
             &&
-            flow.Nodes.Data["offerID"].ToString() == offer.Id)
+            flow.Nodes.Data["offerID"].ToString() == offer.InternalId)
                 .ToList();
-
-            Offer offerObject = offer;
 
             if (flows.Count > 0)
             {
@@ -407,15 +408,9 @@ namespace StrixSDK.Runtime
         // Used and set locally.
         // variableValues are for regular variables like contextual or stat elements.
         // localVars are for custom saved variables.
-        private List<VariableValue> variablesValues = new List<VariableValue>();
+        private List<FlowVariableValue> variablesValues = new List<FlowVariableValue>();
 
         private Dictionary<string, object> localVars = new Dictionary<string, object>();
-
-        public class VariableValue
-        {
-            public string Id { get; set; }
-            public object Value { get; set; }
-        }
 
         // Contextual objects that we may process in flow and return changed.
         public EntityConfig _entityConfig = null;
@@ -453,7 +448,7 @@ namespace StrixSDK.Runtime
         public void ClearAfterPooling()
         {
             localVars = new Dictionary<string, object>();
-            variablesValues = new List<VariableValue>();
+            variablesValues = new List<FlowVariableValue>();
             _entityConfig = null;
             _offer = null;
             flowIsStopped = false;
@@ -469,12 +464,12 @@ namespace StrixSDK.Runtime
                     var playerValue = WarehouseHelperMethods.GetPlayerElementValue(element.Id);
                     if (playerValue != null)
                     {
-                        variablesValues.Add(new VariableValue { Id = element.InternalId, Value = playerValue });
+                        variablesValues.Add(new FlowVariableValue { Id = element.InternalId, Value = playerValue });
                     }
                 }
             }
 
-            variablesValues.Add(new VariableValue { Id = "segment", Value = PlayerManager.Instance._playerData.Segments });
+            variablesValues.Add(new FlowVariableValue { Id = "segment", Value = PlayerManager.Instance._playerData.Segments });
 
             if (contextualData != null)
             {
@@ -488,7 +483,7 @@ namespace StrixSDK.Runtime
                     }
                     else
                     {
-                        variablesValues.Add(new VariableValue { Id = prop.Key, Value = prop.Value });
+                        variablesValues.Add(new FlowVariableValue { Id = prop.Key, Value = prop.Value });
                     }
                 }
             }
@@ -507,7 +502,7 @@ namespace StrixSDK.Runtime
                 }
                 else
                 {
-                    variablesValues.Add(new VariableValue { Id = templateId, Value = playerValue });
+                    variablesValues.Add(new FlowVariableValue { Id = templateId, Value = playerValue });
                 }
             }
         }
@@ -586,7 +581,7 @@ namespace StrixSDK.Runtime
             }
             else
             {
-                variablesValues.Add(new VariableValue { Id = field, Value = value });
+                variablesValues.Add(new FlowVariableValue { Id = field, Value = value });
             }
         }
 
@@ -753,6 +748,10 @@ namespace StrixSDK.Runtime
                     NodeFunctionHandler(OpsSet, node, prevResult);
                     break;
 
+                case "ops_code":
+                    NodeFunctionHandler(OpsCode, node, prevResult);
+                    break;
+
                 case "fc_branch":
                     NodeFunctionHandler(FcBranch, node, prevResult);
                     break;
@@ -907,7 +906,7 @@ namespace StrixSDK.Runtime
                 try
                 {
                     StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Trigger config \"{_entityConfig.Id}\"");
-                    var result = true;
+                    var result = _entityConfig;
                     return result;
                 }
                 catch (Exception ex)
@@ -955,11 +954,11 @@ namespace StrixSDK.Runtime
                     Offer offer = OffersManager.Instance._offers.First(o => o.InternalId == (string)node.Data["offerID"]);
                     StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Trigger offer: {offer.Name}");
 
-                    variablesValues.Add(new VariableValue { Id = "offerIcon", Value = offer.Icon });
-                    variablesValues.Add(new VariableValue { Id = "offerPrice", Value = offer.Price.Value });
-                    variablesValues.Add(new VariableValue { Id = "offerDiscount", Value = offer.Pricing.Discount });
+                    variablesValues.Add(new FlowVariableValue { Id = "offerIcon", Value = offer.Icon });
+                    variablesValues.Add(new FlowVariableValue { Id = "offerPrice", Value = offer.Price.Value });
+                    variablesValues.Add(new FlowVariableValue { Id = "offerDiscount", Value = offer.Pricing.Discount });
 
-                    var result = true;
+                    var result = offer;
 
                     return result;
                 }
@@ -1004,7 +1003,7 @@ namespace StrixSDK.Runtime
             {
                 try
                 {
-                    var result = prevResult;
+                    var result = _eventCustomData;
                     return result;
                 }
                 catch (Exception ex)
@@ -1019,7 +1018,7 @@ namespace StrixSDK.Runtime
             {
                 try
                 {
-                    var result = prevResult;
+                    var result = true;
                     return result;
                 }
                 catch (Exception ex)
@@ -1037,11 +1036,11 @@ namespace StrixSDK.Runtime
                     Offer offer = OffersManager.Instance._offers.First(o => o.InternalId == (string)node.Data["offerID"]);
                     StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Trigger offer: {offer.Name}");
 
-                    variablesValues.Add(new VariableValue { Id = "offerIcon", Value = offer.Icon });
-                    variablesValues.Add(new VariableValue { Id = "offerPrice", Value = offer.Price.Value });
-                    variablesValues.Add(new VariableValue { Id = "offerDiscount", Value = offer.Pricing.Discount });
+                    variablesValues.Add(new FlowVariableValue { Id = "offerIcon", Value = offer.Icon });
+                    variablesValues.Add(new FlowVariableValue { Id = "offerPrice", Value = offer.Price.Value });
+                    variablesValues.Add(new FlowVariableValue { Id = "offerDiscount", Value = offer.Pricing.Discount });
 
-                    var result = true;
+                    var result = offer;
 
                     return result;
                 }
@@ -1498,7 +1497,6 @@ namespace StrixSDK.Runtime
                     }
 
                     var result = (object)null;
-                    //_eventCustomData
                     switch (fieldToSet.Type)
                     {
                         case "customData":
@@ -1519,8 +1517,14 @@ namespace StrixSDK.Runtime
                             break;
 
                         case "offerIcon":
-                            result = node.Data["value"];
-                            var fileName = Path.GetFileName((string)result);
+                            NodeDataValue value_Icon = null;
+                            if (node.Data.ContainsKey("value") && node.Data["value"] is JObject valueObject_Icon)
+                            {
+                                value_Icon = valueObject_Icon.ToObject<NodeDataValue>();
+                            }
+                            var var_Icon = TryGetDataVariable(value_Icon.Value, value_Icon.IsCustom, prevResult, value_Icon.Type);
+                            result = var_Icon;
+                            var fileName = Path.GetFileName((string)var_Icon);
 
                             // Check if the file exists in the cache
                             if (Content.DoesMediaExist(fileName))
@@ -1535,17 +1539,35 @@ namespace StrixSDK.Runtime
                             break;
 
                         case "offerPrice":
-                            result = node.Data["value"];
-                            _offer.Price.Value = (float)result;
+                            NodeDataValue value_Price = null;
+                            if (node.Data.ContainsKey("value") && node.Data["value"] is JObject valueObject_Price)
+                            {
+                                value_Price = valueObject_Price.ToObject<NodeDataValue>();
+                            }
+                            var var_Price = TryGetDataVariable(value_Price.Value, value_Price.IsCustom, prevResult, value_Price.Type);
+                            result = var_Price;
+                            _offer.Price.Value = Convert.ToSingle(result);
                             break;
 
                         case "offerDiscount":
-                            result = node.Data["value"];
-                            _offer.Pricing.Discount = (int)result;
+                            NodeDataValue value_Discount = null;
+                            if (node.Data.ContainsKey("value") && node.Data["value"] is JObject valueObject_Discount)
+                            {
+                                value_Discount = valueObject_Discount.ToObject<NodeDataValue>();
+                            }
+                            var var_Discount = TryGetDataVariable(value_Discount.Value, value_Discount.IsCustom, prevResult, value_Discount.Type);
+                            result = var_Discount;
+                            _offer.Pricing.Discount = Convert.ToInt32(result);
                             break;
 
                         case "entityConfigValue":
-                            result = node.Data["value"];
+                            NodeDataValue value_Config = null;
+                            if (node.Data.ContainsKey("value") && node.Data["value"] is JObject valueObject_Config)
+                            {
+                                value_Config = valueObject_Config.ToObject<NodeDataValue>();
+                            }
+                            var var_Param = TryGetDataVariable(value_Config.Value, value_Config.IsCustom, prevResult, value_Config.Type);
+                            result = var_Param;
                             var changed = false;
                             foreach (var value in _entityConfig.RawValues)
                             {
@@ -1555,7 +1577,7 @@ namespace StrixSDK.Runtime
                                     var segmentValue = value.Segments.FirstOrDefault(s => s.SegmentID == firstMatchingSegment.SegmentID);
                                     if (segmentValue != null)
                                     {
-                                        segmentValue.Value = (string)result;
+                                        segmentValue.Value = Convert.ToString(result);
                                         changed = true;
                                     }
                                     break;
@@ -1570,7 +1592,7 @@ namespace StrixSDK.Runtime
                                             var segmentValue = subValue.Segments.FirstOrDefault(s => s.SegmentID == firstMatchingSegment.SegmentID);
                                             if (segmentValue != null)
                                             {
-                                                segmentValue.Value = (string)result;
+                                                segmentValue.Value = Convert.ToString(result);
                                                 changed = true;
                                             }
                                             break;
@@ -2249,6 +2271,32 @@ namespace StrixSDK.Runtime
                     var result = var1;
 
                     return (object)result;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in node: {ex.Message}");
+                    throw;
+                }
+            }
+
+            // ops_code
+            object OpsCode(Node node, object prevResult)
+            {
+                try
+                {
+                    List<string> logging = new List<string>();
+
+                    string code = null;
+                    if (node.Data.ContainsKey("code") && node.Data["code"] is string value1Object)
+                    {
+                        code = value1Object.ToString();
+                    }
+
+                    SecureJsExecutor secureJsExecutor = new SecureJsExecutor();
+
+                    ExecutionResult result = secureJsExecutor.ExecuteNodeCode(code, variablesValues, prevResult);
+
+                    return (object)result.Result;
                 }
                 catch (Exception ex)
                 {

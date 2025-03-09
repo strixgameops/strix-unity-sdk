@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 
 namespace StrixSDK
@@ -97,5 +98,21 @@ namespace StrixSDK
 
         [JsonProperty("operator")]
         public string Operator { get; set; }
+    }
+
+    [Serializable]
+    public class FlowVariableValue
+    {
+        public string Id { get; set; }
+        public object Value { get; set; }
+
+        public Dictionary<string, object> ToDictionary()
+        {
+            return new Dictionary<string, object>
+        {
+            { "Id", Id },
+            { "Value", Value }
+        };
+        }
     }
 }

@@ -194,25 +194,19 @@ namespace StrixSDK.Runtime
 
     public static class OffersHelperMethods
     {
-        public static async Task<bool> BuyOffer(string offerId, Dictionary<string, object> customData)
+        public static async Task<bool> BuyOffer(Offer offer, Dictionary<string, object> customData)
         {
             try
             {
-                Offer offer = GetOfferById(offerId);
-                if (offer == null)
-                {
-                    Debug.LogError($"Offer with id {offerId} was not found.");
-                    return false;
-                }
-
                 // First, check if the offer is a real-money IAP that must be bought using real money.
                 // If not, procceed as it were a soft/hard currency offer.
-                var asku = FindAskuById(offerId);
+                var asku = offer.Asku;
                 bool realMoneyIAP = false;
                 bool success = false;
 
                 float resultPrice = 0;
                 string currency = "";
+                int discount = offer.Pricing.Discount;
                 if (offer.Pricing.Type == "money")
                 {
                     currency = PlayerPrefs.GetString("Strix_ClientCurrency", string.Empty);
@@ -225,6 +219,12 @@ namespace StrixSDK.Runtime
                 {
                     currency = offer.Pricing.NodeId;
                     resultPrice = offer.Pricing.Amount;
+                }
+
+                // Apply discount
+                if (discount > 0 && discount <= 100)
+                {
+                    resultPrice *= (100 - discount) / 100f;
                 }
 
                 StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Offer ASKU: {asku}");
@@ -292,7 +292,7 @@ namespace StrixSDK.Runtime
                     }
                 }
 
-                WarehouseHelperMethods.IncrementPlayerOfferPurchase(offerId);
+                WarehouseHelperMethods.IncrementPlayerOfferPurchase(offer.InternalId);
 
                 // Give out offer's content
                 if (realMoneyIAP)
@@ -315,14 +315,14 @@ namespace StrixSDK.Runtime
                             _ = Inventory.AddInventoryItem(offer.Content[i].EntityId, offer.Content[i].Amount);
                         }
                         // Send event
-                        _ = Analytics.SendOfferBuyEvent(GetOriginalOfferInternalId(offer.InternalId), resultPrice, currency, customData);
+                        _ = Analytics.SendOfferBuyEvent(GetOriginalOfferInternalId(offer.InternalId), resultPrice, discount, currency, customData);
                     }
                     return success;
                 }
             }
             catch (Exception e)
             {
-                Debug.LogError($"Could not buy offer '{offerId}'. Error: {e.Message}");
+                Debug.LogError($"Could not buy offer '{offer.Id}' ({offer.InternalId}). Error: {e.Message}");
                 return false;
             }
         }

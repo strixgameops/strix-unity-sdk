@@ -71,7 +71,7 @@ namespace StrixSDK
             {
                 offer = FlowsManager.Instance.ExecuteFlow_OfferShown(offer);
                 Instance.I_StartOfferExpiration(offerId);
-                _ = Analytics.SendOfferShownEvent(offer.InternalId, offer.Price.Value, analyticsEventCustomData);
+                _ = Analytics.SendOfferShownEvent(offer.InternalId, offer.Price.Value, offer.Pricing.Discount, analyticsEventCustomData);
             }
             return offer;
         }
@@ -91,7 +91,7 @@ namespace StrixSDK
                 {
                     Instance.I_StartOfferExpiration(offerId);
                 }
-                _ = Analytics.SendOfferShownEvent(offer.InternalId, offer.Price.Value, analyticsEventCustomData);
+                _ = Analytics.SendOfferShownEvent(offer.InternalId, offer.Price.Value, offer.Pricing.Discount, analyticsEventCustomData);
             }
             return offer;
         }
@@ -124,9 +124,9 @@ namespace StrixSDK
         /// <summary>
         /// Starts the process of buying, if the offer is a real-money IAP, and validate the transaction on Strix's end. If offer has a price of 0, it is treated as non-IAP and considered free. If the offer is entity-currency offer, simply sends the event to the server.
         /// </summary>
-        public static async Task<bool> BuyOffer(string offerId, Dictionary<string, object> analyticsEventCustomData)
+        public static async Task<bool> BuyOffer(Offer offer, Dictionary<string, object> analyticsEventCustomData)
         {
-            return await Instance.I_BuyOffer(offerId, analyticsEventCustomData);
+            return await Instance.I_BuyOffer(offer, analyticsEventCustomData);
         }
 
         /// <summary>
@@ -258,9 +258,9 @@ namespace StrixSDK
             return OffersHelperMethods.GetAllOffers(forceAllOffers);
         }
 
-        private async Task<bool> I_BuyOffer(string offerId, Dictionary<string, object> analyticsEventCustomData)
+        private async Task<bool> I_BuyOffer(Offer offer, Dictionary<string, object> analyticsEventCustomData)
         {
-            return await OffersHelperMethods.BuyOffer(offerId, analyticsEventCustomData);
+            return await OffersHelperMethods.BuyOffer(offer, analyticsEventCustomData);
         }
 
         #endregion Instance methods

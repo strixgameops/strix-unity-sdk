@@ -112,11 +112,10 @@ namespace StrixSDK.Runtime
                 // Loading config file
                 StrixSDKConfig config = StrixSDKConfig.Instance;
 
-                var buildType = config.branch;
-
-                var sessionID = PlayerPrefs.GetString("Strix_SessionID", string.Empty);
-                var clientID = PlayerPrefs.GetString("Strix_ClientID", string.Empty);
-                if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(clientID))
+                var sessionID = Strix.sessionID ?? "";
+                var clientID = Strix.clientID ?? "";
+                var build = Strix.buildVersion ?? "";
+                if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(clientID) || string.IsNullOrEmpty(build))
                 {
                     throw new Exception("Error while executing flow. Cannot add segment to player: sessionID or clientID is null or empty");
                 }
@@ -125,7 +124,8 @@ namespace StrixSDK.Runtime
                 {
                     {"device", clientID},
                     {"secret", config.apiKey},
-                    {"build", buildType},
+                    {"environment", config.environment},
+                    {"build", build},
                     {"action", "segment_add"},
                     {"payload", new Dictionary<string, object>() {
                         {"segmentID", segmentId },
@@ -1407,11 +1407,10 @@ namespace StrixSDK.Runtime
                     // Loading config file
                     StrixSDKConfig config = StrixSDKConfig.Instance;
 
-                    var buildType = config.branch;
-
-                    var sessionID = PlayerPrefs.GetString("Strix_SessionID", string.Empty);
-                    var clientID = PlayerPrefs.GetString("Strix_ClientID", string.Empty);
-                    if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(clientID))
+                    var sessionID = Strix.sessionID ?? "";
+                    var clientID = Strix.clientID ?? "";
+                    var build = Strix.buildVersion ?? "";
+                    if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(clientID) || string.IsNullOrEmpty(build))
                     {
                         throw new Exception("Error while executing flow. Cannot remove player from segment: sessionID or clientID is null or empty");
                     }
@@ -1420,7 +1419,8 @@ namespace StrixSDK.Runtime
                 {
                     {"device", clientID},
                     {"secret", config.apiKey},
-                    {"build", buildType},
+                    {"environment", config.environment},
+                    {"build", build},
                     {"action", "segment_remove"},
                     {"payload", new Dictionary<string, object>() {
                         {"segmentID", node.Data["segmentID"] },
@@ -1450,11 +1450,10 @@ namespace StrixSDK.Runtime
                     // Loading config file
                     StrixSDKConfig config = StrixSDKConfig.Instance;
 
-                    var buildType = config.branch;
-
-                    var sessionID = PlayerPrefs.GetString("Strix_SessionID", string.Empty);
-                    var clientID = PlayerPrefs.GetString("Strix_ClientID", string.Empty);
-                    if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(clientID))
+                    var sessionID = Strix.sessionID ?? "";
+                    var build = Strix.buildVersion ?? "";
+                    var clientID = Strix.clientID ?? "";
+                    if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(clientID) || string.IsNullOrEmpty(build))
                     {
                         throw new Exception("Error while executing flow. Cannot add segment to player: sessionID or clientID is null or empty");
                     }
@@ -1463,7 +1462,7 @@ namespace StrixSDK.Runtime
                 {
                     {"device", clientID},
                     {"secret", config.apiKey},
-                    {"build", buildType},
+                    { "environment", config.environment } , { "build", build },
                     {"action", "segment_add"},
                     {"payload", new Dictionary<string, object>() {
                         {"segmentID", node.Data["segmentID"] },
@@ -1855,11 +1854,10 @@ namespace StrixSDK.Runtime
                             // Loading config file
                             StrixSDKConfig config = StrixSDKConfig.Instance;
 
-                            var buildType = config.branch;
-
-                            var sessionID = PlayerPrefs.GetString("Strix_SessionID", string.Empty);
-                            var clientID = PlayerPrefs.GetString("Strix_ClientID", string.Empty);
-                            if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(clientID))
+                            var sessionID = Strix.sessionID ?? "";
+                            var clientID = Strix.clientID ?? "";
+                            var build = Strix.buildVersion ?? "";
+                            if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(clientID) || string.IsNullOrEmpty(build))
                             {
                                 throw new Exception("Error while executing flow. Cannot add segment to player: sessionID or clientID is null or empty");
                             }
@@ -1869,7 +1867,7 @@ namespace StrixSDK.Runtime
                         {
                             {"device", clientID},
                             {"secret", config.apiKey},
-                            {"build", buildType},
+                            { "environment", config.environment } , { "build", build },
                             {"action", "segment_add"},
                             {"payload", new Dictionary<string, object>() {
                                 {"segmentID", segmentId },

@@ -40,8 +40,6 @@ namespace StrixSDK.Runtime
         // Templates are set from ContentFetcher -> ContentManager after templates are fetched.
         public ElementTemplate[] _templates;
 
-        public ABTest[] _abTests;
-
         private void Awake()
         {
             if (_instance == null)
@@ -61,7 +59,6 @@ namespace StrixSDK.Runtime
             try
             {
                 _playerData = data;
-                RefreshABTests();
                 Content.RecacheExistingStatisticsTemplates();
                 return true;
             }
@@ -69,30 +66,6 @@ namespace StrixSDK.Runtime
             {
                 Debug.LogError($"Could not initialize PlayerManager. Error: {e}");
                 return false;
-            }
-        }
-
-        public void RefreshABTests()
-        {
-            // Refresh tests list
-            List<ABTest> testsList = new List<ABTest>();
-            var testsDocs = Content.LoadAllFromFile("abtests");
-
-            if (testsDocs != null)
-            {
-                foreach (var doc in testsDocs)
-                {
-                    string json = JsonConvert.SerializeObject(doc);
-
-                    ABTest test = JsonConvert.DeserializeObject<ABTest>(json);
-                    testsList.Add(test);
-                }
-                _abTests = testsList.ToArray();
-                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Fetched {_abTests.Length} currently ongoing AB tests");
-            }
-            else
-            {
-                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Could not fetch AB tests from persistent storage");
             }
         }
     }
@@ -235,14 +208,13 @@ namespace StrixSDK.Runtime
         {
             // Loading config file
             StrixSDKConfig config = StrixSDKConfig.Instance;
-
-            var buildType = config.branch;
-
+            var build = Strix.buildVersion ?? "";
             var body = new Dictionary<string, object>()
             {
                 {"device", Strix.clientID},
                 {"secret", config.apiKey},
-                {"build", buildType},
+                {"environment", config.environment},
+                {"build", build},
                 {"elementID", elementId},
                 {"value", value},
             };
@@ -331,14 +303,13 @@ namespace StrixSDK.Runtime
 
             // Propagate changes of this element to player warehouse
             StrixSDKConfig config = StrixSDKConfig.Instance;
-
-            var buildType = config.branch;
-
+            var build = Strix.buildVersion ?? "";
             var body = new Dictionary<string, object>()
             {
                 {"device", Strix.clientID},
                 {"secret", config.apiKey},
-                {"build", buildType},
+                {"environment", config.environment},
+                {"build", build},
                 {"offerID", offerInternalId},
                 {"expiration", expirationDate.ToString("o")},
             };
@@ -357,9 +328,8 @@ namespace StrixSDK.Runtime
             // Loading config file
             StrixSDKConfig config = StrixSDKConfig.Instance;
 
-            var buildType = config.branch;
-
-            var clientID = PlayerPrefs.GetString("Strix_ClientID", string.Empty);
+            var clientID = Strix.clientID;
+            var build = Strix.buildVersion ?? "";
             if (string.IsNullOrEmpty(clientID))
             {
                 Debug.LogError("GetPlayerElementValueAsync: Client ID is invalid.");
@@ -370,7 +340,8 @@ namespace StrixSDK.Runtime
             {
                 {"device", clientID},
                 {"secret", config.apiKey},
-                {"build", buildType},
+                {"environment", config.environment},
+                {"build", build},
                 {"elementID", template.InternalId},
             };
             var result = await Client.Req(API.GetElementValue, body);
@@ -806,14 +777,13 @@ namespace StrixSDK.Runtime
 
             // Loading config file
             StrixSDKConfig config = StrixSDKConfig.Instance;
-
-            var buildType = config.branch;
-
+            var build = Strix.buildVersion ?? "";
             var body = new Dictionary<string, object>()
             {
                 {"device", Strix.clientID},
                 {"secret", config.apiKey},
-                {"build", buildType},
+                {"environment", config.environment},
+                {"build", build},
                 {"leaderboardID", leaderboardId},
             };
             if (groupElementId != null && groupElementValue != null)
@@ -850,14 +820,13 @@ namespace StrixSDK.Runtime
         {
             // Loading config file
             StrixSDKConfig config = StrixSDKConfig.Instance;
-
-            var buildType = config.branch;
-
+            var build = Strix.buildVersion ?? "";
             var body = new Dictionary<string, object>()
             {
                 {"device", Strix.clientID},
                 {"secret", config.apiKey},
-                {"build", buildType}
+                {"environment", config.environment},
+                {"build", build},
             };
             var response = await Client.Req(API.GetInventoryItems, body);
             var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
@@ -902,14 +871,13 @@ namespace StrixSDK.Runtime
 
             // Loading config file
             StrixSDKConfig config = StrixSDKConfig.Instance;
-
-            var buildType = config.branch;
-
+            var build = Strix.buildVersion ?? "";
             var body = new Dictionary<string, object>()
             {
                 {"device", Strix.clientID},
                 {"secret", config.apiKey},
-                {"build", buildType},
+                {"environment", config.environment},
+                {"build", build},
                 {"nodeID", entity.NodeId},
                 {"slot", slot }
             };
@@ -941,14 +909,13 @@ namespace StrixSDK.Runtime
 
             // Loading config file
             StrixSDKConfig config = StrixSDKConfig.Instance;
-
-            var buildType = config.branch;
-
+            var build = Strix.buildVersion ?? "";
             var body = new Dictionary<string, object>()
             {
                 {"device", Strix.clientID},
                 {"secret", config.apiKey},
-                {"build", buildType},
+                {"environment", config.environment},
+                {"build", build},
                 {"nodeID", entity.NodeId},
                 {"amount", amount.ToString()},
                 {"slot", slot }
@@ -982,14 +949,13 @@ namespace StrixSDK.Runtime
 
             // Loading config file
             StrixSDKConfig config = StrixSDKConfig.Instance;
-
-            var buildType = config.branch;
-
+            var build = Strix.buildVersion ?? "";
             var body = new Dictionary<string, object>()
             {
                 {"device", Strix.clientID},
                 {"secret", config.apiKey},
-                {"build", buildType},
+                {"environment", config.environment},
+                {"build", build},
                 {"nodeID", entity.NodeId},
                 {"amount", amount.ToString()},
                 {"slot", slot }

@@ -184,14 +184,14 @@ namespace StrixSDK.Runtime.Db
             {
                 // Loading config file
                 StrixSDKConfig config = StrixSDKConfig.Instance;
-                var buildType = config.branch;
-
+                var build = Strix.buildVersion ?? "";
                 var body = new Dictionary<string, object>()
                 {
                     {"device", clientID},
                     {"secret", secret},
                     {"token", token},
-                    {"build", buildType},
+                    {"environment", config.environment},
+                    {"build", build},
                 };
 
                 var response = await Client.Req(API.RegisterFCMToken, body);

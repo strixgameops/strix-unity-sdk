@@ -24,6 +24,10 @@ namespace StrixSDK
     public class Strix : MonoBehaviour
     {
         public static string StrixSDKVersion = "1.0.0";
+        public static string clientID;
+        public static string sessionID;
+        public static string buildVersion;
+        public static string clientCurrency;
 
         private static Strix _instance;
 
@@ -49,7 +53,6 @@ namespace StrixSDK
 
         private OffersManager offersManagerInstance;
         private PlayerManager playerManagerInstance;
-        public static string clientID;
 
         public static bool IsInitialized = false;
 
@@ -77,7 +80,6 @@ namespace StrixSDK
 
         public static async Task<bool> Initialize()
         {
-            PlayerPrefs.SetString("Strix_ClientID", SystemInfo.deviceUniqueIdentifier);
             clientID = SystemInfo.deviceUniqueIdentifier;
             IsInitialized = await InitSDK(clientID);
             if (!IsInitialized)
@@ -89,7 +91,6 @@ namespace StrixSDK
 
         public static async Task<bool> Initialize(string customClientID)
         {
-            PlayerPrefs.SetString("Strix_ClientID", customClientID);
             clientID = customClientID;
             IsInitialized = await InitSDK(clientID);
             if (!IsInitialized)
@@ -107,7 +108,7 @@ namespace StrixSDK
             {
                 return false;
             }
-            if (string.IsNullOrEmpty(config.branch))
+            if (string.IsNullOrEmpty(config.environment))
             {
                 return false;
             }
@@ -127,7 +128,7 @@ namespace StrixSDK
                 Debug.LogError($"Could not initialize StrixSDK. API key seems to be null! Set it in your 'Project settings -> Strix SDK'");
                 return false;
             }
-            if (string.IsNullOrEmpty(config.branch))
+            if (string.IsNullOrEmpty(config.environment))
             {
                 Debug.LogError($"Could not initialize StrixSDK. Branch seems to be null! Set it in your 'Project settings -> Strix SDK'");
                 return false;
@@ -160,9 +161,7 @@ namespace StrixSDK
                 // Make analytics instance. It will listen for Unity logs and report any errors. Make it before all calls to catch any errors.
                 Analytics analyticsInstance = Analytics.Instance;
 
-                string sessionID = Guid.NewGuid().ToString();
-                PlayerPrefs.SetString("Strix_SessionID", sessionID);
-                PlayerPrefs.Save();
+                sessionID = Guid.NewGuid().ToString();
 
                 // We need to send initializating request to get player data and proceed with analytics events
                 StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Sending init req.");
@@ -171,7 +170,7 @@ namespace StrixSDK
                     {"device", clientId},
                     {"secret", config.apiKey},
                     {"session", sessionID},
-                    {"build", config.branch},
+                    {"environment", config.environment},
                 };
                 var result = await Client.Req(API.Init, initBody);
 
@@ -180,10 +179,9 @@ namespace StrixSDK
                     // If the key was fetched, proceed with initialization
                     var responseObj = JsonConvert.DeserializeObject<M_InitializationResponse>(result);
 
-                    // Set client key which is used for DB access & identifies target currency for IAPs
-                    PlayerPrefs.SetString("Strix_ClientKey", responseObj.Data.Key);
-                    PlayerPrefs.SetString("Strix_ClientCurrency", responseObj.Data.Currency);
-                    PlayerPrefs.Save();
+                    // Set client target currency for IAPs
+                    clientCurrency = responseObj.Data.Currency;
+                    buildVersion = responseObj.Data.Version;
 
 #if UNITY_ANDROID
                     // Initialize listener services so we can communicate with backend
@@ -200,7 +198,6 @@ namespace StrixSDK
                             "stattemplates",
                             "offers",
                             "positionedOffers",
-                            "abtests",
                             "flows",
                             "events"
                         });
@@ -214,7 +211,6 @@ namespace StrixSDK
                          "stattemplates",
                          "offers",
                          "positionedOffers",
-                         "abtests",
                          "flows",
                          "events"
                     });

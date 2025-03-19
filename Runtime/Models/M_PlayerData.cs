@@ -12,13 +12,22 @@ namespace StrixSDK
         public List<PlayerDataElement> Elements { get; set; } = new List<PlayerDataElement>();
 
         [JsonProperty("abtests")]
-        public List<string> ABTests { get; set; } = new List<string>();
+        public List<PlayerABTests> ABTests { get; set; } = new List<PlayerABTests>();
 
         [JsonProperty("inventory")]
         public List<string> Inventory { get; set; } = new List<string>();
 
         [JsonProperty("offers")]
         public List<PlayerOfferData> Offers { get; set; } = new List<PlayerOfferData>();
+    }
+
+    public class PlayerABTests
+    {
+        [JsonProperty("testID")]
+        public string TestID { get; set; } = string.Empty;
+
+        [JsonProperty("groupType")]
+        public string Group { get; set; } = string.Empty;
     }
 
     public class PlayerOfferData // Used only for real-money IAPs

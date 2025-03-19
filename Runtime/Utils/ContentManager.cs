@@ -86,18 +86,6 @@ namespace StrixSDK.Runtime.Utils
             }
         }
 
-        public static void RecacheExistingTests()
-        {
-            try
-            {
-                PlayerManager.Instance.RefreshABTests();
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"Failed to recache AB tests: {ex.Message}");
-            }
-        }
-
         #endregion Content Recaching Methods
 
         #region File Operations

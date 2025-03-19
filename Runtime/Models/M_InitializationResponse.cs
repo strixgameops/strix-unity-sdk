@@ -11,9 +11,6 @@ namespace StrixSDK
 
     public class Data
     {
-        [JsonProperty("key")]
-        public string Key { get; set; }
-
         [JsonProperty("playerData")]
         public PlayerData PlayerData { get; set; }
 
@@ -25,6 +22,9 @@ namespace StrixSDK
 
         [JsonProperty("isNewPlayer")]
         public bool IsNewPlayer { get; set; }
+
+        [JsonProperty("version")]
+        public string Version { get; set; }
     }
 
     public class FCMOptions

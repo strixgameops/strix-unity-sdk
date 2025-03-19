@@ -6,7 +6,7 @@ using UnityEditor;
 
 public static class StrixSettingsProvider
 {
-    private static readonly string[] BranchOptions = { "development", "staging", "production" };
+    private static readonly string[] EnvOptions = { "development", "staging", "production" };
 
     [SettingsProvider]
     public static SettingsProvider CreateStrixSettingsProvider()
@@ -22,13 +22,13 @@ public static class StrixSettingsProvider
                     EditorGUI.BeginChangeCheck();
 
                     config.apiKey = EditorGUILayout.TextField("API Key", config.apiKey);
-                    int selectedIndex = System.Array.IndexOf(BranchOptions, config.branch);
+                    int selectedIndex = System.Array.IndexOf(EnvOptions, config.environment);
                     if (selectedIndex == -1)
                     {
                         selectedIndex = 0;
                     }
-                    selectedIndex = EditorGUILayout.Popup("Branch", selectedIndex, BranchOptions);
-                    config.branch = BranchOptions[selectedIndex];
+                    selectedIndex = EditorGUILayout.Popup("Environment", selectedIndex, EnvOptions);
+                    config.environment = EnvOptions[selectedIndex];
 
                     float originalValue = EditorGUIUtility.labelWidth;
                     EditorGUIUtility.labelWidth = 250;

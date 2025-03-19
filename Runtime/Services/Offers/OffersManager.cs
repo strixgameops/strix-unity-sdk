@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using StrixSDK.Runtime.Utils;
 using System;
 using StrixSDK.Runtime;
@@ -169,7 +169,7 @@ namespace StrixSDK.Runtime
             // Making .Price field for this offer
             if (offer.Pricing.Type == "money")
             {
-                string userCurrency = PlayerPrefs.GetString("Strix_ClientCurrency", string.Empty);
+                string userCurrency = Strix.clientCurrency ?? "";
                 if (userCurrency == string.Empty)
                 {
                     StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Error: could not retrieve current user's currency from PlayerPrefs.");
@@ -209,7 +209,7 @@ namespace StrixSDK.Runtime
                 int discount = offer.Pricing.Discount;
                 if (offer.Pricing.Type == "money")
                 {
-                    currency = PlayerPrefs.GetString("Strix_ClientCurrency", string.Empty);
+                    currency = Strix.clientCurrency ?? "";
                     if (!string.IsNullOrEmpty(currency))
                     {
                         resultPrice = OffersHelperMethods.GetCurrencyValueByCurrencyCode(offer, currency);
@@ -236,8 +236,9 @@ namespace StrixSDK.Runtime
                     string receipt = await StrixIAPManager.Instance.CallBuyIAP(asku);
                     if (receipt != null)
                     {
-                        var sessionID = PlayerPrefs.GetString("Strix_SessionID", string.Empty);
-                        if (string.IsNullOrEmpty(sessionID))
+                        var sessionID = Strix.sessionID ?? "";
+                        var build = Strix.buildVersion ?? "";
+                        if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(build))
                         {
                             Debug.LogWarning("Problem while validating offer receipt: Session ID is invalid.");
                         }
@@ -249,7 +250,8 @@ namespace StrixSDK.Runtime
                             {"device", Strix.clientID},
                             {"secret", config.apiKey},
                             {"session", sessionID},
-                            {"build", config.branch},
+                            {"environment", config.environment},
+                            {"build", build},
                             {"asku", asku},
                             {"offerID", offer.InternalId},
                             {"receipt", receipt},
@@ -406,37 +408,27 @@ namespace StrixSDK.Runtime
                     return null;
                 }
 
-                // If player participates in the AB test for this offer, find it and try to give an intended variation of the requested offer
                 bool changedOfferOnce = false;
-                var allTests = PlayerManager.Instance._abTests.Where(t => t.Subject.ItemId == offer.InternalId).ToList();
-                if (allTests.Any())
-                {
-                    var playerTests = PlayerManager.Instance._playerData.ABTests;
-                    if (playerTests != null && playerTests.Any())
-                    {
-                        foreach (var playerTestId in playerTests)
-                        {
-                            var matchingTest = allTests.FirstOrDefault(t => t.Id == playerTestId);
-                            if (matchingTest != null)
-                            {
-                                // If the player IS IN the AB test and we successfully validated it, try to get the corresponding variation of the offer
-                                var tempOffer = OffersManager.Instance._offers
-                                    .FirstOrDefault(p => p.InternalId == offer.InternalId + "|" + matchingTest.InternalId);
 
-                                if (tempOffer != null)
-                                {
-                                    changedOfferOnce = true;
-                                    offer = tempOffer;
-                                }
-                                else
-                                {
-                                    Debug.LogError($"GetOfferById: Unexpected behavior while fetching offer '{id}'. Current player is seen to participate in the AB test with this offer, though the code failed to give him a variation of the offer.");
-                                }
-                                break;
-                            }
-                        }
+                // If player participates ▬in the AB test for this offer, find it and try to give an intended variation of the requested offer
+                var abTestsIds = PlayerManager.Instance._playerData.ABTests
+                    .Where(test => test.Group == "test")
+                    .Select(test => test.TestID);
+
+                // If the player IS IN the AB test, try to get the corresponding variation of the offer
+                foreach (string testID in abTestsIds)
+                {
+                    var tempOffer = OffersManager.Instance._offers
+                        .FirstOrDefault(p => p.InternalId == offer.InternalId + "|" + testID);
+
+                    if (tempOffer != null)
+                    {
+                        changedOfferOnce = true;
+                        offer = tempOffer;
                     }
+                    break;
                 }
+
                 if (!changedOfferOnce)
                 {
                     var eventChangedOffer = GameEventsManager.Instance.TryGetChangedOfferFromOngoingEvents(
@@ -479,36 +471,24 @@ namespace StrixSDK.Runtime
 
                 if (applyModifications)
                 {
-                    // If player participates in the AB test for this offer, find it and try to give an intended variation of the requested offer
                     bool changedOfferOnce = false;
-                    var allTests = PlayerManager.Instance._abTests.Where(t => t.Subject.ItemId == offer.InternalId).ToList();
-                    if (allTests.Any())
-                    {
-                        var playerTests = PlayerManager.Instance._playerData.ABTests;
-                        if (playerTests != null && playerTests.Any())
-                        {
-                            foreach (var playerTestId in playerTests)
-                            {
-                                var matchingTest = allTests.FirstOrDefault(t => t.Id == playerTestId);
-                                if (matchingTest != null)
-                                {
-                                    // If the player IS IN the AB test and we successfully validated it, try to get the corresponding variation of the offer
-                                    var tempOffer = OffersManager.Instance._offers
-                                        .FirstOrDefault(p => p.InternalId == offer.InternalId + "|" + matchingTest.InternalId);
+                    // If player participates in the AB test for this offer, find it and try to give an intended variation of the requested offer
+                    var abTestsIds = PlayerManager.Instance._playerData.ABTests
+                        .Where(test => test.Group == "test")
+                        .Select(test => test.TestID);
 
-                                    if (tempOffer != null)
-                                    {
-                                        changedOfferOnce = true;
-                                        offer = tempOffer;
-                                    }
-                                    else
-                                    {
-                                        Debug.LogError($"GetOfferByInternalId: Unexpected behavior while fetching offer '{id}'. Current player is seen to participate in the AB test with this offer, though the code failed to give him a variation of the offer.");
-                                    }
-                                    break;
-                                }
-                            }
+                    // If the player IS IN the AB test, try to get the corresponding variation of the offer
+                    foreach (string testID in abTestsIds)
+                    {
+                        var tempOffer = OffersManager.Instance._offers
+                            .FirstOrDefault(p => p.InternalId == offer.InternalId + "|" + testID);
+
+                        if (tempOffer != null)
+                        {
+                            changedOfferOnce = true;
+                            offer = tempOffer;
                         }
+                        break;
                     }
 
                     if (!changedOfferOnce)

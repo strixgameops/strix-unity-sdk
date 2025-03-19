@@ -94,7 +94,7 @@ namespace StrixSDK.Runtime.Db
             try
             {
                 StrixSDKConfig config = StrixSDKConfig.Instance;
-                string clientID = PlayerPrefs.GetString("Strix_ClientID", string.Empty);
+                string clientID = Strix.clientID;
 
                 if (string.IsNullOrEmpty(clientID))
                 {
@@ -106,7 +106,7 @@ namespace StrixSDK.Runtime.Db
                 {
                     {"device", clientID},
                     {"secret", config.apiKey},
-                    {"build", config.branch},
+                    {"environment", config.environment},
                     {"tableNames", contentTypes}
                 };
 
@@ -157,7 +157,7 @@ namespace StrixSDK.Runtime.Db
                 {
                     {"device", StrixSDK.Strix.clientID},
                     {"secret", config.apiKey},
-                    {"build", config.branch},
+                    {"environment", config.environment},
                     {"tableName", contentType}
                 };
 
@@ -173,7 +173,7 @@ namespace StrixSDK.Runtime.Db
                 mediaIDs.Clear();
                 Content.ClearContent(contentType);
 
-                bool[] recacheFlags = new bool[8];
+                bool[] recacheFlags = new bool[7];
                 JArray data = response["data"] as JArray;
 
                 if (data != null)
@@ -220,11 +220,6 @@ namespace StrixSDK.Runtime.Db
                     recacheFlags[1] = true; // entities
                     break;
 
-                case "abtests":
-                    Content.SaveToFile(contentType, contentItem);
-                    recacheFlags[2] = true; // tests
-                    break;
-
                 case "localization":
                     Content.SaveToFile(contentType, contentItem);
                     recacheFlags[3] = true; // localization
@@ -259,12 +254,11 @@ namespace StrixSDK.Runtime.Db
             {
                 case "offers": recacheFlags[0] = true; break;
                 case "entities": recacheFlags[1] = true; break;
-                case "abtests": recacheFlags[2] = true; break;
-                case "localization": recacheFlags[3] = true; break;
-                case "stattemplates": recacheFlags[4] = true; break;
-                case "events": recacheFlags[5] = true; break;
-                case "positionedOffers": recacheFlags[6] = true; break;
-                case "flows": recacheFlags[7] = true; break;
+                case "localization": recacheFlags[2] = true; break;
+                case "stattemplates": recacheFlags[3] = true; break;
+                case "events": recacheFlags[4] = true; break;
+                case "positionedOffers": recacheFlags[5] = true; break;
+                case "flows": recacheFlags[6] = true; break;
             }
         }
 
@@ -273,7 +267,7 @@ namespace StrixSDK.Runtime.Db
         private async Task UpdateDependentContent(bool[] recacheFlags, HashSet<string> mediaIDs)
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
-            if (recacheFlags[0] || recacheFlags[6]) // offers or positioned offers
+            if (recacheFlags[0] || recacheFlags[5]) // offers or positioned offers
             {
                 Content.RecacheExistingOffers();
                 Content.ResolveCachedMedia(mediaIDs.ToList(), "offers");
@@ -284,24 +278,20 @@ namespace StrixSDK.Runtime.Db
                 Content.RecacheExistingOffers();
                 Content.ResolveCachedMedia(mediaIDs.ToList(), "entities");
             }
-            if (recacheFlags[2]) // tests
-            {
-                Content.RecacheExistingTests();
-            }
-            if (recacheFlags[3]) // localization
+            if (recacheFlags[2]) // localization
             {
                 Content.RecacheExistingOffers();
             }
-            if (recacheFlags[4]) // stat templates
+            if (recacheFlags[3]) // stat templates
             {
                 Content.RecacheExistingStatisticsTemplates();
             }
-            if (recacheFlags[5]) // game events
+            if (recacheFlags[4]) // game events
             {
                 Content.RecacheExistingGameEvents();
                 Content.ResolveCachedMedia(mediaIDs.ToList(), "events");
             }
-            if (recacheFlags[7]) // flows
+            if (recacheFlags[6]) // flows
             {
                 Content.RecacheExistingFlows();
                 Content.ResolveCachedMedia(mediaIDs.ToList(), "flows");

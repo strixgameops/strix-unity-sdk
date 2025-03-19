@@ -62,11 +62,10 @@ namespace StrixSDK
             // Loading config file
             StrixSDKConfig config = StrixSDKConfig.Instance;
 
-            var buildType = config.branch;
-
-            var sessionID = PlayerPrefs.GetString("Strix_SessionID", string.Empty);
-            var clientID = PlayerPrefs.GetString("Strix_ClientID", string.Empty);
-            if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(clientID))
+            var sessionID = Strix.sessionID ?? "";
+            var clientID = Strix.clientID ?? "";
+            var build = Strix.buildVersion ?? "";
+            if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(clientID) || string.IsNullOrEmpty(build))
             {
                 Debug.LogError("Error while sending Strix analytics event: client ID or Session ID is invalid.");
                 return null;
@@ -81,7 +80,8 @@ namespace StrixSDK
                 {"platform", Application.platform.ToString()},
                 {"gameVersion", Application.version},
                 {"engineVersion", Application.unityVersion},
-                {"build", buildType},
+                {"environment", config.environment},
+                {"build", build},
                 {"payload", JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(payload)}
             };
 
@@ -237,7 +237,7 @@ namespace StrixSDK
                 return null;
             }
 
-            var currency = PlayerPrefs.GetString("Strix_ClientCurrency", string.Empty);
+            var currency = Strix.clientCurrency ?? "";
             if (string.IsNullOrEmpty(currency))
             {
                 Debug.LogError($"Invalid currency fetched. SDK probably initialized not properly!");

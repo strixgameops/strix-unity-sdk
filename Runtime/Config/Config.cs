@@ -6,7 +6,7 @@ namespace StrixSDK.Runtime.Config
     public class StrixSDKConfig : ScriptableObject
     {
         public string apiKey;
-        public string branch = "development";
+        public string environment = "development";
         public bool fetchUpdatesInRealTime = false;
         public bool showDebugLogs = false;
 

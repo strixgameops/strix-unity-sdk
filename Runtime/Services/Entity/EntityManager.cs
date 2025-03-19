@@ -437,13 +437,10 @@ namespace StrixSDK.Runtime
 
         public static RawSegmentValue PickAppropriateSegmentedValue(RawConfigValue valueConfig)
         {
-            // Check if value is being AB tested and we're in the test.
-            ABTest[] filteredABTests = PlayerManager.Instance._abTests
-                    .Where(test => test.Subject?.Type == "entity")
-                    .ToArray();
-            var abTestSegmentIds = filteredABTests
-                .Select(test => $"abtest_{test.InternalId}")
-                .ToList();
+            // Get all ABtests where player participates as a test group
+            var abTestSegmentIds = PlayerManager.Instance._playerData.ABTests
+                    .Where(test => test.Group == "test")
+                    .Select(test => $"abtest_{test.TestID}");
 
             // Try to find AB test value
             var firstMatchingSegment = valueConfig.Segments?

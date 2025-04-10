@@ -140,26 +140,15 @@ namespace StrixSDK.Runtime.Db
                         StrixSDKConfig config = StrixSDKConfig.Instance;
                         if (!config.fetchUpdatesInRealTime) break;
 
-                        var checksums = JsonConvert.DeserializeObject<Dictionary<string, object>>(data["checksums"].ToString());
+                        var checksumData = JsonConvert.DeserializeObject<Dictionary<string, object>>(data["checksums"].ToString());
 
                         // Iterate through each field in the data
-                        foreach (var field in checksums)
+                        var contentTypesToUpdate = ContentFetcher.GetUnsyncedContentTablesList(checksumData);
+                        foreach (var contentType in contentTypesToUpdate)
                         {
-                            // Compare the checksum in data with storedChecksum
-                            int remoteChecksum = Convert.ToInt32(field.Value);
-                            int storedChecksum = Content.GetCacheChecksum(field.Key);
-
-                            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Comparing checksums for '{field.Key}'. Remote: {remoteChecksum}, Local: {storedChecksum}");
-
-                            if (remoteChecksum != storedChecksum || storedChecksum == -1)
-                            {
-                                Debug.LogWarning($"Checksum mismatch for table '{field.Key}'. Remote: {remoteChecksum}, Local: {storedChecksum}");
-                                _ = ContentFetcher.Instance.FetchContentByType(field.Key);
-                            }
-                            else
-                            {
-                                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Table '{field.Key}' is up to date!");
-                            }
+                            // Sync each content type separately, so we don't do excess operations for the contents we don't need to update
+                            var localItemsHashes = ContentFetcher.GetLocalContentItemsHashes(new List<string>() { contentType });
+                            _ = ContentFetcher.Instance.FetchDeltaContentByType(contentType, localItemsHashes[contentType]);
                         }
 
                         break;

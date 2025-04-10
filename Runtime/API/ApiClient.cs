@@ -137,9 +137,9 @@ namespace StrixSDK.Runtime.APIClient
                                 errorMessage = $"API Error: {errorResponse.message}";
                             }
                         }
-                        catch (Exception)
+                        catch (Exception err)
                         {
-                            // Ignore JSON parsing errors for error responses
+                            Debug.LogError($"Error while parsing response from Strix: {method} request to {url}: {err.Message}");
                         }
                     }
 

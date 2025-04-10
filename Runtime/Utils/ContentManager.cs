@@ -156,6 +156,41 @@ namespace StrixSDK.Runtime.Utils
             }
         }
 
+        public static void SaveItemHash(string tableName, string itemId, string hash)
+        {
+            string safeId = itemId.Replace("|", "_");
+            try
+            {
+                string directoryPath = Path.Combine(BaseDirectoryPath, "cached", tableName);
+                EnsureDirectoryExists(directoryPath);
+                string filePath = Path.Combine(directoryPath, $"{safeId}-hash.txt");
+                File.WriteAllText(filePath, hash);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to save item hash for {tableName}/{safeId}: {ex.Message}");
+            }
+        }
+
+        public static string GetItemHash(string tableName, string itemId)
+        {
+            string safeId = itemId.Replace("|", "_");
+            try
+            {
+                string directoryPath = Path.Combine(BaseDirectoryPath, "cached", tableName);
+                string filePath = Path.Combine(directoryPath, $"{safeId}-hash.txt");
+                if (File.Exists(filePath))
+                {
+                    return File.ReadAllText(filePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to read hash for {tableName}/{safeId}: {ex.Message}");
+            }
+            return null;
+        }
+
         private static void SaveJsonToFile(string filePath, JObject document)
         {
             string jsonContent = JsonConvert.SerializeObject(document, Formatting.Indented);
@@ -384,30 +419,74 @@ namespace StrixSDK.Runtime.Utils
             return documents;
         }
 
-        public static void DeleteFile(string tableName, string id)
+        public static Dictionary<string, string> GetAllLocalItemHashes(string contentType)
         {
-            if (string.IsNullOrEmpty(id)) return;
+            var result = new Dictionary<string, string>();
 
             try
             {
-                id = id.Replace("|", "_");
-                string directoryPath = GetTableDirectoryPath(tableName);
+                string directoryPath = Content.GetTableDirectoryPath(contentType);
+                if (!Directory.Exists(directoryPath))
+                    return result;
 
-                var filesToDelete = Directory.GetFiles(directoryPath, $"{id}*.txt");
-                foreach (string file in filesToDelete)
+                foreach (var file in Directory.GetFiles(directoryPath, "*.txt"))
                 {
-                    File.Delete(file);
-                    Utils.StrixDebugLogMessage($"Deleted file: {file}");
-                }
+                    if (file.Contains("_conf.txt"))
+                        continue; // Skip config files
 
-                if (filesToDelete.Length == 0)
-                {
-                    Debug.LogWarning($"No files found for {tableName}/{id}");
+                    string fileName = Path.GetFileNameWithoutExtension(file);
+                    string itemId = fileName.Replace("_", "|"); // Restore original ID format
+                    string hash = Content.GetItemHash(contentType, itemId);
+
+                    if (!string.IsNullOrEmpty(hash))
+                    {
+                        result[itemId] = hash;
+                    }
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Failed to delete {tableName}/{id}: {ex.Message}");
+                Debug.LogError($"Error collecting local item hashes for {contentType}: {ex.Message}");
+            }
+
+            return result;
+        }
+
+        public static void DeleteItemContent(string tableName, string itemId)
+        {
+            string safeId = itemId.Replace("|", "_");
+            try
+            {
+                // Delete the main file
+                string directoryPath = GetTableDirectoryPath(tableName);
+                string filePath = Path.Combine(directoryPath, $"{safeId}.txt");
+
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                }
+
+                // If it's an entity, also delete any config files
+                if (tableName == "entities")
+                {
+                    foreach (var file in Directory.GetFiles(directoryPath, $"{safeId}_*_conf.txt"))
+                    {
+                        File.Delete(file);
+                    }
+                }
+
+                // Delete the hash file
+                string hashPath = Path.Combine(BaseDirectoryPath, "cached", tableName, $"{safeId}-hash.txt");
+                if (File.Exists(hashPath))
+                {
+                    File.Delete(hashPath);
+                }
+
+                Debug.Log($"Deleted content item {safeId} from {tableName}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error deleting item {safeId} from {tableName}: {ex.Message}");
             }
         }
 

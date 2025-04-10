@@ -62,13 +62,18 @@ namespace StrixSDK.Runtime.Db
         {
             try
             {
-                var typesToFetch = await ChecksumCheckup(contentTypes);
-                if (typesToFetch == null || typesToFetch.Count == 0)
+                // Get tables that need updating and their item hashes
+                var updateInfo = await ChecksumCheckup(contentTypes);
+                if (updateInfo == null || updateInfo.TablesNeedingUpdate.Count == 0)
                 {
                     return false;
                 }
 
-                var fetchTasks = typesToFetch.Select(type => FetchContentByType(type)).ToList();
+                // Fetch delta updates for each table
+                var fetchTasks = updateInfo.TablesNeedingUpdate.Select(
+                    type => FetchDeltaContentByType(type, updateInfo.TableItemHashes[type])
+                ).ToList();
+
                 if (fetchTasks.Count > 0)
                 {
                     await Task.WhenAll(fetchTasks);
@@ -83,24 +88,35 @@ namespace StrixSDK.Runtime.Db
             }
         }
 
+        public class ContentUpdateInfo
+        {
+            public List<string> TablesNeedingUpdate { get; set; } = new List<string>();
+
+            public Dictionary<string, Dictionary<string, string>> TableItemHashes { get; set; } =
+                new Dictionary<string, Dictionary<string, string>>();
+        }
+
         /// <summary>
         /// Compares local and remote checksums for content types.
         /// </summary>
         /// <param name="contentTypes">List of content type names to check</param>
         /// <returns>List of content types that need updating</returns>
-        public async Task<List<string>> ChecksumCheckup(List<string> contentTypes)
+        public async Task<ContentUpdateInfo> ChecksumCheckup(List<string> contentTypes)
         {
-            var contentToUpdate = new List<string>();
+            var result = new ContentUpdateInfo();
+
             try
             {
                 StrixSDKConfig config = StrixSDKConfig.Instance;
                 string clientID = Strix.ClientID;
-
                 if (string.IsNullOrEmpty(clientID))
                 {
                     Debug.LogError("Error making checksum checkup: client ID is invalid.");
-                    return contentToUpdate;
+                    return result;
                 }
+
+                // For each content type, collect local item hashes and save these for later use in delta updates
+                result.TableItemHashes = GetLocalContentItemsHashes(contentTypes);
 
                 var checkupBody = new Dictionary<string, object>
                 {
@@ -110,36 +126,74 @@ namespace StrixSDK.Runtime.Db
                     {"tableNames", contentTypes}
                 };
 
-                string result = await Client.Req(API.ChecksumCheckup, checkupBody);
-                var response = JsonConvert.DeserializeObject<Dictionary<string, object>>(result);
-
+                string responseStr = await Client.Req(API.ChecksumCheckup, checkupBody);
+                var response = JsonConvert.DeserializeObject<Dictionary<string, object>>(responseStr);
                 if (response == null || !(bool)response["success"])
                 {
-                    return contentToUpdate;
+                    return result;
                 }
 
-                var checksums = JsonConvert.DeserializeObject<Dictionary<string, object>>(response["data"].ToString());
-                foreach (var field in checksums)
-                {
-                    int remoteChecksum = Convert.ToInt32(field.Value);
-                    int storedChecksum = Content.GetCacheChecksum(field.Key);
+                var checksumData = JsonConvert.DeserializeObject<Dictionary<string, object>>(response["data"].ToString());
+                result.TablesNeedingUpdate = GetUnsyncedContentTablesList(checksumData);
 
-                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Comparing checksums for '{field.Key}'. Remote: {remoteChecksum}, Local: {storedChecksum}");
+                foreach (var tableEntry in checksumData)
+                {
+                    string tableName = tableEntry.Key;
+                    var tableData = JsonConvert.DeserializeObject<Dictionary<string, object>>(tableEntry.Value.ToString());
+
+                    int remoteChecksum = Convert.ToInt32(tableData["checksum"]);
+                    int storedChecksum = Content.GetCacheChecksum(tableName);
+
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Comparing checksums for '{tableName}'. Remote: {remoteChecksum}, Local: {storedChecksum}");
 
                     if (remoteChecksum != storedChecksum || storedChecksum == -1)
                     {
-                        Debug.LogWarning($"Checksum mismatch for table '{field.Key}'. Remote: {remoteChecksum}, Local: {storedChecksum}");
-                        contentToUpdate.Add(field.Key);
+                        Debug.LogWarning($"Checksum mismatch for table '{tableName}'. Remote: {remoteChecksum}, Local: {storedChecksum}");
+                        result.TablesNeedingUpdate.Add(tableName);
                     }
                 }
 
-                return contentToUpdate;
+                return result;
             }
             catch (Exception ex)
             {
                 Debug.LogError($"Error checking content updates: {ex.Message}");
-                return contentToUpdate;
+                return result;
             }
+        }
+
+        public static Dictionary<string, Dictionary<string, string>> GetLocalContentItemsHashes(List<string> contentTypes)
+        {
+            // For each content type, collect local item hashes
+            var localItemHashes = new Dictionary<string, Dictionary<string, string>>();
+            foreach (var contentType in contentTypes)
+            {
+                localItemHashes[contentType] = Content.GetAllLocalItemHashes(contentType);
+            }
+
+            return localItemHashes;
+        }
+
+        public static List<string> GetUnsyncedContentTablesList(Dictionary<string, object> checksumData)
+        {
+            var result = new List<string>();
+            foreach (var tableEntry in checksumData)
+            {
+                string tableName = tableEntry.Key;
+                var tableData = JsonConvert.DeserializeObject<Dictionary<string, object>>(tableEntry.Value.ToString());
+
+                int remoteChecksum = Convert.ToInt32(tableData["checksum"]);
+                int storedChecksum = Content.GetCacheChecksum(tableName);
+
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Comparing checksums for '{tableName}'. Remote: {remoteChecksum}, Local: {storedChecksum}");
+
+                if (remoteChecksum != storedChecksum || storedChecksum == -1)
+                {
+                    Debug.LogWarning($"Checksum mismatch for table '{tableName}'. Remote: {remoteChecksum}, Local: {storedChecksum}");
+                    result.Add(tableName);
+                }
+            }
+            return result;
         }
 
         /// <summary>
@@ -147,7 +201,7 @@ namespace StrixSDK.Runtime.Db
         /// </summary>
         /// <param name="contentType">The type of content to fetch</param>
         /// <returns>True if successful, false otherwise</returns>
-        public async Task<bool> FetchContentByType(string contentType)
+        public async Task<bool> FetchDeltaContentByType(string contentType, Dictionary<string, string> localItemHashes)
         {
             try
             {
@@ -158,7 +212,8 @@ namespace StrixSDK.Runtime.Db
                     {"device", StrixSDK.Strix.ClientID},
                     {"secret", config.apiKey},
                     {"environment", config.environment},
-                    {"tableName", contentType}
+                    {"tableName", contentType},
+                    {"itemHashes", localItemHashes}
                 };
 
                 string result = await Client.Req(API.UpdateContent, body);
@@ -169,27 +224,41 @@ namespace StrixSDK.Runtime.Db
                     throw new Exception($"Content request failed for {contentType}. Please report to Strix support team.");
                 }
 
-                int totalChecksum = 0;
+                var deltaData = JsonConvert.DeserializeObject<Dictionary<string, object>>(response["data"].ToString());
+                int totalChecksum = Convert.ToInt32(deltaData["totalChecksum"]);
+
+                // Process updated items
                 mediaIDs.Clear();
-                Content.ClearContent(contentType);
-
                 bool[] recacheFlags = new bool[7];
-                JArray data = response["data"] as JArray;
+                JArray updatedItems = deltaData["items"] as JArray;
 
-                if (data != null)
+                if (updatedItems != null && updatedItems.Count > 0)
                 {
-                    foreach (JObject contentItem in data)
+                    foreach (JObject contentItem in updatedItems)
                     {
-                        totalChecksum += (int)contentItem["checksum"];
+                        // Save the item and its hash
+                        string itemId = contentItem["id"].ToString();
+                        string itemHash = contentItem["hash"].ToString();
+
                         await ProcessContent(contentType, contentItem, recacheFlags);
+                        Content.SaveItemHash(contentType, itemId, itemHash);
                     }
                 }
-                else
+
+                // Process deleted items
+                JArray deletedIds = deltaData["deletedIds"] as JArray;
+                if (deletedIds != null && deletedIds.Count > 0)
                 {
-                    // Handle removed content by setting appropriate recache flag
+                    foreach (string itemId in deletedIds)
+                    {
+                        Content.DeleteItemContent(contentType, itemId);
+                    }
+
+                    // Set appropriate recache flag for removed contents
                     SetRecacheFlag(contentType, recacheFlags);
                 }
 
+                // Save new total checksum and update dependent content
                 Content.SaveCacheChecksum(contentType, totalChecksum);
                 await UpdateDependentContent(recacheFlags, mediaIDs);
 

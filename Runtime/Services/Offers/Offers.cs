@@ -230,6 +230,14 @@ namespace StrixSDK
         }
 
         /// <summary>
+        /// Get IDs of entities that are linked to this offer
+        /// </summary>
+        public static List<string> GetOfferLinkedEntitiesIDs(string offerId)
+        {
+            return Instance.I_GetOfferLinkedEntitiesIDs(offerId);
+        }
+
+        /// <summary>
         /// Event triggered when a list of offers is activated by some external action.
         /// Subscribers can listen to this event to receive updates on triggered offers.
         /// </summary>
@@ -344,6 +352,11 @@ namespace StrixSDK
         private async Task<BuyOfferResult> I_BuyOffer(Offer offer, int? discount, Dictionary<string, object> analyticsEventCustomData)
         {
             return await OffersHelperMethods.BuyOffer(offer, discount, analyticsEventCustomData);
+        }
+
+        private List<string> I_GetOfferLinkedEntitiesIDs(string offerId)
+        {
+            return OffersHelperMethods.GetOfferLinkedEntitiesIDs(offerId);
         }
 
         #endregion Instance Methods

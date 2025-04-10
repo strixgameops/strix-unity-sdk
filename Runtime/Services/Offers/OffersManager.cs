@@ -904,6 +904,12 @@ namespace StrixSDK.Runtime
             return offersList;
         }
 
+        public static List<string> GetOfferLinkedEntitiesIDs(string offerId)
+        {
+            Offer offer = GetOfferById(offerId);
+            return offer.LinkedEntities.ToList();
+        }
+
         /// <summary>
         /// "Offers.cs" is subscribed to this event
         /// </summary>

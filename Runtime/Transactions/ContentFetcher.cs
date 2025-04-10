@@ -94,7 +94,7 @@ namespace StrixSDK.Runtime.Db
             try
             {
                 StrixSDKConfig config = StrixSDKConfig.Instance;
-                string clientID = Strix.clientID;
+                string clientID = Strix.ClientID;
 
                 if (string.IsNullOrEmpty(clientID))
                 {
@@ -155,7 +155,7 @@ namespace StrixSDK.Runtime.Db
 
                 var body = new Dictionary<string, object>
                 {
-                    {"device", StrixSDK.Strix.clientID},
+                    {"device", StrixSDK.Strix.ClientID},
                     {"secret", config.apiKey},
                     {"environment", config.environment},
                     {"tableName", contentType}
@@ -222,28 +222,28 @@ namespace StrixSDK.Runtime.Db
 
                 case "localization":
                     Content.SaveToFile(contentType, contentItem);
-                    recacheFlags[3] = true; // localization
+                    recacheFlags[2] = true; // localization
                     break;
 
                 case "stattemplates":
                     Content.SaveToFile(contentType, contentItem);
-                    recacheFlags[4] = true; // stat templates
+                    recacheFlags[3] = true; // stat templates
                     break;
 
                 case "events":
                     Content.SaveToFile(contentType, contentItem);
-                    recacheFlags[5] = true; // game events
+                    recacheFlags[4] = true; // game events
                     break;
 
                 case "positionedOffers":
                     Content.SaveToFile(contentType, contentItem);
-                    recacheFlags[6] = true; // positioned offers
+                    recacheFlags[5] = true; // positioned offers
                     break;
 
                 case "flows":
                     await ProcessFlowMedia(contentItem);
                     Content.SaveToFile(contentType, contentItem);
-                    recacheFlags[7] = true; // flows
+                    recacheFlags[6] = true; // flows
                     break;
             }
         }

@@ -43,20 +43,30 @@ namespace StrixSDK
         #region Static methods
 
         /// <summary>
-        /// Given custom trigger id, executes such flow
+        /// Given custom trigger id, executes a flow
         /// </summary>
         /// <param name="customTriggerId"></param>
-        /// <returns></returns>
+        /// <returns>Dictionary of all custom variables that were set during flow execution.</returns>
         public static Dictionary<string, object> ExecuteFlow(string customTriggerId)
         {
             return Instance.I_ExecuteFlow(customTriggerId);
         }
 
+        /// <summary>
+        /// Should only be used internally by StrixSDK
+        /// </summary>
+        /// <param name="offer"></param>
+        /// <returns></returns>
         public static Offer ExecuteFlow_OfferShown(Offer offer)
         {
             return Instance.I_ExecuteFlow_OfferShown(offer);
         }
 
+        /// <summary>
+        /// Should only be used internally by StrixSDK
+        /// </summary>
+        /// <param name="entityConfig"></param>
+        /// <returns></returns>
         public static EntityConfig ExecuteFlow_ConfigParamRetrieved(EntityConfig entityConfig)
         {
             return Instance.I_ExecuteFlow_ConfigParamRetrieved(entityConfig);

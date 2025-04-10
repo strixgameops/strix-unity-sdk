@@ -14,6 +14,7 @@ using UnityEngine.Localization.SmartFormat.PersistentVariables;
 using System.Globalization;
 using System.Threading;
 using StrixSDK.Runtime;
+using Google.MiniJSON;
 
 namespace StrixSDK.Runtime
 {
@@ -112,9 +113,9 @@ namespace StrixSDK.Runtime
                 // Loading config file
                 StrixSDKConfig config = StrixSDKConfig.Instance;
 
-                var sessionID = Strix.sessionID ?? "";
-                var clientID = Strix.clientID ?? "";
-                var build = Strix.buildVersion ?? "";
+                var sessionID = Strix.SessionID ?? "";
+                var clientID = Strix.ClientID ?? "";
+                var build = Strix.BuildVersion ?? "";
                 if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(clientID) || string.IsNullOrEmpty(build))
                 {
                     throw new Exception("Error while executing flow. Cannot add segment to player: sessionID or clientID is null or empty");
@@ -956,11 +957,8 @@ namespace StrixSDK.Runtime
 
                     variablesValues.Add(new FlowVariableValue { Id = "offerIcon", Value = offer.Icon });
                     variablesValues.Add(new FlowVariableValue { Id = "offerPrice", Value = offer.Price.Value });
-                    variablesValues.Add(new FlowVariableValue { Id = "offerDiscount", Value = offer.Pricing.Discount });
 
-                    var result = offer;
-
-                    return result;
+                    return offer;
                 }
                 catch (Exception ex)
                 {
@@ -1038,7 +1036,6 @@ namespace StrixSDK.Runtime
 
                     variablesValues.Add(new FlowVariableValue { Id = "offerIcon", Value = offer.Icon });
                     variablesValues.Add(new FlowVariableValue { Id = "offerPrice", Value = offer.Price.Value });
-                    variablesValues.Add(new FlowVariableValue { Id = "offerDiscount", Value = offer.Pricing.Discount });
 
                     var result = offer;
 
@@ -1407,9 +1404,9 @@ namespace StrixSDK.Runtime
                     // Loading config file
                     StrixSDKConfig config = StrixSDKConfig.Instance;
 
-                    var sessionID = Strix.sessionID ?? "";
-                    var clientID = Strix.clientID ?? "";
-                    var build = Strix.buildVersion ?? "";
+                    var sessionID = Strix.SessionID ?? "";
+                    var clientID = Strix.ClientID ?? "";
+                    var build = Strix.BuildVersion ?? "";
                     if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(clientID) || string.IsNullOrEmpty(build))
                     {
                         throw new Exception("Error while executing flow. Cannot remove player from segment: sessionID or clientID is null or empty");
@@ -1450,9 +1447,9 @@ namespace StrixSDK.Runtime
                     // Loading config file
                     StrixSDKConfig config = StrixSDKConfig.Instance;
 
-                    var sessionID = Strix.sessionID ?? "";
-                    var build = Strix.buildVersion ?? "";
-                    var clientID = Strix.clientID ?? "";
+                    var sessionID = Strix.SessionID ?? "";
+                    var build = Strix.BuildVersion ?? "";
+                    var clientID = Strix.ClientID ?? "";
                     if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(clientID) || string.IsNullOrEmpty(build))
                     {
                         throw new Exception("Error while executing flow. Cannot add segment to player: sessionID or clientID is null or empty");
@@ -1548,15 +1545,30 @@ namespace StrixSDK.Runtime
                             _offer.Price.Value = Convert.ToSingle(result);
                             break;
 
-                        case "offerDiscount":
-                            NodeDataValue value_Discount = null;
-                            if (node.Data.ContainsKey("value") && node.Data["value"] is JObject valueObject_Discount)
+                        case "offerContent":
+                            List<OfferContent> value_Content = null;
+                            if (node.Data.ContainsKey("value") && node.Data["value"] is JArray valueObject_Content)
                             {
-                                value_Discount = valueObject_Discount.ToObject<NodeDataValue>();
+                                value_Content = valueObject_Content.ToObject<List<OfferContent>>();
                             }
-                            var var_Discount = TryGetDataVariable(value_Discount.Value, value_Discount.IsCustom, prevResult, value_Discount.Type);
-                            result = var_Discount;
-                            _offer.Pricing.Discount = Convert.ToInt32(result);
+                            if (node.Data.TryGetValue("value", out var rawArrayContent) && rawArrayContent is string stringifiedContent)
+                            {
+                                try
+                                {
+                                    var content = JsonConvert.DeserializeObject<List<OfferContent>>(stringifiedContent);
+                                    for (int i = 0; i < content.Count; i++)
+                                    {
+                                        content[i].EntityId = EntityHelperMethods.GetEntityIdByNodeId(content[i].NodeId);
+                                    }
+                                    value_Content = content;
+                                }
+                                catch (JsonReaderException ex)
+                                {
+                                    Debug.LogError("Invalid JSON in 'offerContent' in Flows: " + ex.Message);
+                                }
+                            }
+                            result = value_Content;
+                            _offer.Content = value_Content;
                             break;
 
                         case "entityConfigValue":
@@ -1640,7 +1652,7 @@ namespace StrixSDK.Runtime
                     );
 
                     List<NodeDataCases> cases = null;
-                    if (node.Data.ContainsKey("cases") && node.Data["cases"] is JObject casesObject)
+                    if (node.Data.ContainsKey("cases") && node.Data["cases"] is JArray casesObject)
                     {
                         cases = casesObject.ToObject<List<NodeDataCases>>();
                     }
@@ -1854,9 +1866,9 @@ namespace StrixSDK.Runtime
                             // Loading config file
                             StrixSDKConfig config = StrixSDKConfig.Instance;
 
-                            var sessionID = Strix.sessionID ?? "";
-                            var clientID = Strix.clientID ?? "";
-                            var build = Strix.buildVersion ?? "";
+                            var sessionID = Strix.SessionID ?? "";
+                            var clientID = Strix.ClientID ?? "";
+                            var build = Strix.BuildVersion ?? "";
                             if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(clientID) || string.IsNullOrEmpty(build))
                             {
                                 throw new Exception("Error while executing flow. Cannot add segment to player: sessionID or clientID is null or empty");

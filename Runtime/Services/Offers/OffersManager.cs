@@ -169,10 +169,10 @@ namespace StrixSDK.Runtime
             // Making .Price field for this offer
             if (offer.Pricing.Type == "money")
             {
-                string userCurrency = Strix.clientCurrency ?? "";
+                string userCurrency = Strix.ClientCurrency ?? "";
                 if (userCurrency == string.Empty)
                 {
-                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Error: could not retrieve current user's currency from PlayerPrefs.");
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Error: could not retrieve current user's currency from Strix.");
                     return null;
                 }
                 offer.Price = OffersHelperMethods.GetCurrencyObjectByCurrencyCode(offer, userCurrency);
@@ -194,8 +194,31 @@ namespace StrixSDK.Runtime
 
     public static class OffersHelperMethods
     {
-        public static async Task<bool> BuyOffer(Offer offer, Dictionary<string, object> customData)
+        public enum BuyOfferMessageCode
         {
+            Success = 0,
+            NotEnoughCurrency = 1,
+            InvalidReceipt = 2,
+            BackendValidationFailed = 3,
+            InvalidEntity = 4,
+            Exception = 99
+        }
+
+        public class BuyOfferResult
+        {
+            public bool Success { get; set; }
+            public BuyOfferMessageCode MessageCode { get; set; }
+        }
+
+        public static async Task<BuyOfferResult> BuyOffer(Offer offer, int? discount, Dictionary<string, object> customData)
+        {
+            // Default result in case of failure.
+            BuyOfferResult result = new BuyOfferResult
+            {
+                Success = false,
+                MessageCode = BuyOfferMessageCode.Exception
+            };
+
             try
             {
                 // First, check if the offer is a real-money IAP that must be bought using real money.
@@ -206,10 +229,9 @@ namespace StrixSDK.Runtime
 
                 float resultPrice = 0;
                 string currency = "";
-                int discount = offer.Pricing.Discount;
                 if (offer.Pricing.Type == "money")
                 {
-                    currency = Strix.clientCurrency ?? "";
+                    currency = Strix.ClientCurrency ?? "";
                     if (!string.IsNullOrEmpty(currency))
                     {
                         resultPrice = OffersHelperMethods.GetCurrencyValueByCurrencyCode(offer, currency);
@@ -222,9 +244,9 @@ namespace StrixSDK.Runtime
                 }
 
                 // Apply discount
-                if (discount > 0 && discount <= 100)
+                if (discount != null && discount > 0 && discount <= 100)
                 {
-                    resultPrice *= (100 - discount) / 100f;
+                    resultPrice = (float)Math.Round((double)(resultPrice * ((100f - discount) / 100f)), MidpointRounding.AwayFromZero);
                 }
 
                 StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Offer ASKU: {asku}");
@@ -236,8 +258,8 @@ namespace StrixSDK.Runtime
                     string receipt = await StrixIAPManager.Instance.CallBuyIAP(asku);
                     if (receipt != null)
                     {
-                        var sessionID = Strix.sessionID ?? "";
-                        var build = Strix.buildVersion ?? "";
+                        var sessionID = Strix.SessionID ?? "";
+                        var build = Strix.BuildVersion ?? "";
                         if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(build))
                         {
                             Debug.LogWarning("Problem while validating offer receipt: Session ID is invalid.");
@@ -247,7 +269,7 @@ namespace StrixSDK.Runtime
                         StrixSDKConfig config = StrixSDKConfig.Instance;
                         var body = new Dictionary<string, object>()
                         {
-                            {"device", Strix.clientID},
+                            {"device", Strix.ClientID},
                             {"secret", config.apiKey},
                             {"session", sessionID},
                             {"environment", config.environment},
@@ -258,20 +280,26 @@ namespace StrixSDK.Runtime
                             {"resultPrice", resultPrice},
                             {"currency", currency}
                         };
-                        var result = await Client.Req(API.ValidateReceipt, body);
-                        var resultObj = JsonConvert.DeserializeObject<Dictionary<string, object>>(result);
+                        var validationResult = await Client.Req(API.ValidateReceipt, body);
+                        var resultObj = JsonConvert.DeserializeObject<Dictionary<string, object>>(validationResult);
                         if (resultObj != null)
                         {
                             success = (bool)resultObj["isValid"];
+                            if (!success)
+                            {
+                                result.MessageCode = BuyOfferMessageCode.BackendValidationFailed;
+                            }
                         }
                         else
                         {
                             Debug.LogError("Purchase failed: backend validation result is null");
+                            result.MessageCode = BuyOfferMessageCode.InvalidReceipt;
                         }
                     }
                     else
                     {
-                        Debug.LogError("Purchase failed.");
+                        Debug.LogError("Purchase failed: receipt was null.");
+                        result.MessageCode = BuyOfferMessageCode.InvalidReceipt;
                     }
                 }
                 else if (offer.Pricing.Type == "entity")
@@ -280,6 +308,7 @@ namespace StrixSDK.Runtime
                     if (string.IsNullOrEmpty(entityId))
                     {
                         Debug.LogError($"Player tried to buy offer that has entity {currency} as price, but it's not present in system now!");
+                        result.MessageCode = BuyOfferMessageCode.InvalidEntity;
                         success = false;
                     }
                     else
@@ -291,41 +320,43 @@ namespace StrixSDK.Runtime
                             _ = Inventory.RemoveInventoryItem(entityId, (int)resultPrice);
                             success = true;
                         }
+                        else
+                        {
+                            // Not enough currency in inventory.
+                            result.MessageCode = BuyOfferMessageCode.NotEnoughCurrency;
+                            success = false;
+                        }
                     }
                 }
 
                 WarehouseHelperMethods.IncrementPlayerOfferPurchase(offer.InternalId);
 
-                // Give out offer's content
-                if (realMoneyIAP)
+                // Give out offer's content if purchase was successful.
+                if (success)
                 {
-                    if (success)
+                    for (int i = 0; i < offer.Content.Count; i++)
                     {
-                        for (int i = 0; i < offer.Content.Count; i++)
-                        {
-                            _ = Inventory.AddInventoryItem(offer.Content[i].EntityId, offer.Content[i].Amount);
-                        }
+                        _ = Inventory.AddInventoryItem(offer.Content[i].EntityId, offer.Content[i].Amount);
                     }
-                    return success;
-                }
-                else
-                {
-                    if (success)
+
+                    if (!realMoneyIAP)
                     {
-                        for (int i = 0; i < offer.Content.Count; i++)
-                        {
-                            _ = Inventory.AddInventoryItem(offer.Content[i].EntityId, offer.Content[i].Amount);
-                        }
-                        // Send event
+                        // Send event only for non-real money offers.
                         _ = Analytics.SendOfferBuyEvent(GetOriginalOfferInternalId(offer.InternalId), resultPrice, discount, currency, customData);
                     }
-                    return success;
+
+                    result.Success = true;
+                    result.MessageCode = BuyOfferMessageCode.Success;
                 }
+
+                return result;
             }
             catch (Exception e)
             {
                 Debug.LogError($"Could not buy offer '{offer.Id}' ({offer.InternalId}). Error: {e.Message}");
-                return false;
+                result.Success = false;
+                result.MessageCode = BuyOfferMessageCode.Exception;
+                return result;
             }
         }
 

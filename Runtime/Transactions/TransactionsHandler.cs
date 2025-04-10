@@ -184,7 +184,7 @@ namespace StrixSDK.Runtime.Db
             {
                 // Loading config file
                 StrixSDKConfig config = StrixSDKConfig.Instance;
-                var build = Strix.buildVersion ?? "";
+                var build = Strix.BuildVersion ?? "";
                 var body = new Dictionary<string, object>()
                 {
                     {"device", clientID},

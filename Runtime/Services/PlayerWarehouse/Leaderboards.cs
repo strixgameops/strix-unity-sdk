@@ -75,10 +75,14 @@ namespace StrixSDK
 
         #region Instance methods
 
+#nullable enable
+
         private async Task<List<LeaderboardTimeframe>> I_GetLeaderboard(string leaderboardId, string? groupElementId, string? groupElementValue)
         {
             return await WarehouseHelperMethods.GetLeaderboard(leaderboardId, groupElementId, groupElementValue);
         }
+
+#nullable disable
 
         #endregion Instance methods
     }

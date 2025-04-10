@@ -46,6 +46,9 @@ namespace StrixSDK
 
         [JsonProperty("isValidIAP")]
         public bool IsValidIap { get; set; } // Indicate if this offer is currently in the app store system as an active IAP. Therefore, can be bought
+
+        [JsonProperty("linkedEntities")]
+        public string[] LinkedEntities { get; set; } // Array of entityIDs that we consider linked to this offer
     }
 
     public class OfferContent
@@ -61,9 +64,6 @@ namespace StrixSDK
 
     public class OfferPricing
     {
-        [JsonProperty("discount")]
-        public int Discount { get; set; } // Value in range from 0 to 100
-
         [JsonProperty("moneyCurr")]
         public OfferPricingCurrency[] Currencies { get; set; } // An array of regional pricing
 

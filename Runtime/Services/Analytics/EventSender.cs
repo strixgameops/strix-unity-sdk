@@ -62,9 +62,9 @@ namespace StrixSDK
             // Loading config file
             StrixSDKConfig config = StrixSDKConfig.Instance;
 
-            var sessionID = Strix.sessionID ?? "";
-            var clientID = Strix.clientID ?? "";
-            var build = Strix.buildVersion ?? "";
+            var sessionID = Strix.SessionID ?? "";
+            var clientID = Strix.ClientID ?? "";
+            var build = Strix.BuildVersion ?? "";
             if (string.IsNullOrEmpty(sessionID) || string.IsNullOrEmpty(clientID) || string.IsNullOrEmpty(build))
             {
                 Debug.LogError("Error while sending Strix analytics event: client ID or Session ID is invalid.");
@@ -179,7 +179,7 @@ namespace StrixSDK
         }
 
         // offerEvent
-        public static async Task<string> SendOfferBuyEvent(string offerID, float price, int discount, string currency, Dictionary<string, object> customData)
+        public static async Task<string> SendOfferBuyEvent(string offerID, float price, int? discount, string currency, Dictionary<string, object> customData)
         {
             if (String.IsNullOrEmpty(offerID))
             {
@@ -203,7 +203,7 @@ namespace StrixSDK
                     { "offerID", offerID },
                     { "price", price },
                     { "currency", currency },
-                { "discount", discount }
+                    { "discount", discount ?? 0 }
                 };
 
             customData = FlowsManager.Instance.ExecuteFlow_AnalyticsEventSend("offerEvent", customData);
@@ -224,7 +224,7 @@ namespace StrixSDK
         }
 
         // offerShown event
-        public static async Task<string> SendOfferShownEvent(string offerID, float price, int discount, Dictionary<string, object> customData)
+        public static async Task<string> SendOfferShownEvent(string offerID, float price, int? discount, Dictionary<string, object> customData)
         {
             if (String.IsNullOrEmpty(offerID))
             {
@@ -237,7 +237,7 @@ namespace StrixSDK
                 return null;
             }
 
-            var currency = Strix.clientCurrency ?? "";
+            var currency = Strix.ClientCurrency ?? "";
             if (string.IsNullOrEmpty(currency))
             {
                 Debug.LogError($"Invalid currency fetched. SDK probably initialized not properly!");
@@ -248,7 +248,8 @@ namespace StrixSDK
                 {
                     { "offerID", offerID },
                     { "price", price },
-                    { "currency", currency }
+                    { "currency", currency },
+                    { "discount", discount ?? 0 }
                 };
 
             customData = FlowsManager.Instance.ExecuteFlow_AnalyticsEventSend("offerShown", customData);
@@ -456,6 +457,7 @@ namespace StrixSDK
                 _ = SendReportEvent(SeverityTypes.fatal, logString, stackTrace, null);
             }
             // Do not uncomment until we figure better way to handle the case where error sending reportEvent causes another reportEvent to arise
+            // and until the crashlytics is on board
             //if (type == LogType.Error)
             //{
             //    SendReportEvent(SeverityTypes.error, logString, stackTrace);

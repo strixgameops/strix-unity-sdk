@@ -17,7 +17,7 @@ FirebaseApp iOS and Android Dependencies.
     </androidPackage>
     <androidPackage spec="com.google.firebase:firebase-app-unity:12.1.0">
       <repositories>
-        <repository>Assets/Plugins/StrixSDK/ThirdParty/Firebase/m2repository</repository>
+        <repository>Packages/com.strixgameops.strix-unity-sdk/ThirdParty/Firebase/m2repository</repository>
       </repositories>
     </androidPackage>
   </androidPackages>

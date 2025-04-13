@@ -301,10 +301,12 @@ namespace StrixSDK
         }
 
 #if UNITY_ANDROID
-        private static async Task<bool> InitializeAndroidServices(string clientId, object fcmData)
+
+        private static async Task<bool> InitializeAndroidServices(string clientId, FCMOptions fcmData)
         {
             return await TransactionsHandler.Instance.Initialize(clientId, fcmData);
         }
+
 #endif
 
         private static async Task FetchContent()
@@ -372,6 +374,7 @@ namespace StrixSDK
         }
 
 #if UNITY_ANDROID
+
         private static void LogInitializationErrors(ServiceInitResult results, bool transactionsInit)
         {
             Debug.LogError($"Error while initializing StrixSDK. " +
@@ -384,6 +387,7 @@ namespace StrixSDK
                            $"GameEventsManager={results.GameEventsManager}. " +
                            $" Strix will try to initialize using local configs.");
         }
+
 #else
 
         private static void LogInitializationErrors(ServiceInitResult results)

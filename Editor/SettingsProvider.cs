@@ -51,6 +51,12 @@ public class StrixSettingsWindow : EditorWindow
                 config.showDebugLogs,
                 GUILayout.ExpandWidth(true)
             );
+
+            config.eventBatchInterval = EditorGUILayout.FloatField(
+                "Analytics Batch Send Interval (seconds)",
+                config.eventBatchInterval,
+                GUILayout.ExpandWidth(true)
+            );
             EditorGUIUtility.labelWidth = originalValue;
 
             if (EditorGUI.EndChangeCheck())

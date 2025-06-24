@@ -28,6 +28,7 @@ namespace StrixSDK
         public static string BuildVersion { get; private set; }
         public static string ClientCurrency { get; private set; } = "USD";
         public static bool IsInitialized { get; private set; }
+        public static string FCMToken { get; set; }
 
         private static Strix _instance;
         private const int RETRY_DELAY_MS = 30000;
@@ -304,7 +305,17 @@ namespace StrixSDK
 
         private static async Task<bool> InitializeAndroidServices(string clientId, FCMOptions fcmData)
         {
-            return await TransactionsHandler.Instance.Initialize(clientId, fcmData);
+            // FCM initialization - handles null fcmData gracefully
+            bool fcmInitialized = await TransactionsHandler.Instance.Initialize(clientId, fcmData);
+
+            if (fcmData != null && !fcmInitialized)
+            {
+                Debug.LogWarning("FCM was enabled but failed to initialize. Continuing with SDK initialization.");
+            }
+
+            // Always return true unless there's a critical error
+            // FCM failure shouldn't block SDK initialization
+            return fcmInitialized;
         }
 
 #endif

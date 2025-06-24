@@ -49,6 +49,13 @@ namespace StrixSDK.Runtime.Db
         {
             clientID = clientId;
 
+            // Check if FCM options are provided
+            if (fcmOptions == null)
+            {
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage("FCM options not provided. Skipping FCM initialization.");
+                return true; // Return true since this is expected behavior when FCM is disabled
+            }
+
             try
             {
                 var dependencyStatus = await FirebaseApp.CheckAndFixDependenciesAsync();
@@ -67,6 +74,7 @@ namespace StrixSDK.Runtime.Db
                     FirebaseMessaging.MessageReceived += OnMessageReceived;
 
                     var token = await FirebaseMessaging.GetTokenAsync();
+                    Strix.FCMToken = token;
                     OnTokenReceived(null, new TokenReceivedEventArgs(token));
 
                     return true;

@@ -30,7 +30,7 @@ public class PlayerWarehouseExample : MonoBehaviour
 
     public void SimpleNumericElementValue()
     {
-        // AddPlayerElementValue/SubtractPlayerElementValue can conceptually only be used for numeric elements, so though it received "object" type,
+        // AddPlayerElementValue/SubtractPlayerElementValue can conceptually only be used for numeric elements, so though it receives "object" type,
         // it can virtually be either float or integer.
         object newValue1 = PlayerWarehouse.AddPlayerElementValue("lose_streak", 1);
         object newValue2 = PlayerWarehouse.SubtractPlayerElementValue("lose_streak", 1);

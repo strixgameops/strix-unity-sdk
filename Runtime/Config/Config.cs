@@ -9,6 +9,7 @@ namespace StrixSDK.Runtime.Config
         public string environment = "development";
         public bool fetchUpdatesInRealTime = false;
         public bool showDebugLogs = false;
+        public float eventBatchInterval = 30f;
 
         private static StrixSDKConfig instance;
 

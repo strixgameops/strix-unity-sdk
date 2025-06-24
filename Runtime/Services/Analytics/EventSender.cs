@@ -6,6 +6,7 @@ using StrixSDK.Runtime.Models;
 using StrixSDK.Runtime.Service;
 using StrixSDK.Runtime.Utils;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -18,6 +19,10 @@ namespace StrixSDK
     public class Analytics : MonoBehaviour
     {
         private static Analytics _instance;
+        private static readonly List<Dictionary<string, object>> _eventQueue = new List<Dictionary<string, object>>();
+        private static readonly object _queueLock = new object();
+        private static bool _isBatchingEnabled = true;
+        private Coroutine _batchSendCoroutine;
 
         public static Analytics Instance
         {
@@ -31,6 +36,7 @@ namespace StrixSDK
                         GameObject obj = new();
                         _instance = obj.AddComponent<Analytics>();
                         obj.name = typeof(Analytics).ToString();
+                        DontDestroyOnLoad(obj);
                     }
                 }
                 return _instance;
@@ -54,11 +60,57 @@ namespace StrixSDK
 
         #endregion Types
 
-        public static async Task<string> ProcessNewEvent(string payload, bool preventCaching)
-        //
-        // After we formed the needed payload, make an event body, put it there and send
-        //
+        private void Start()
         {
+            StartBatchSending();
+        }
+
+        private void StartBatchSending()
+        {
+            if (_batchSendCoroutine == null)
+            {
+                _batchSendCoroutine = StartCoroutine(BatchSendCoroutine());
+            }
+        }
+
+        private IEnumerator BatchSendCoroutine()
+        {
+            while (_isBatchingEnabled && Application.isPlaying)
+            {
+                StrixSDKConfig config = StrixSDKConfig.Instance;
+                yield return new WaitForSeconds(config.eventBatchInterval);
+
+                if (_eventQueue.Count > 0)
+                {
+                    yield return StartCoroutine(SendBatchedEvents());
+                }
+            }
+        }
+
+        private IEnumerator SendBatchedEvents()
+        {
+            List<Dictionary<string, object>> eventsToSend;
+
+            lock (_queueLock)
+            {
+                if (_eventQueue.Count == 0)
+                    yield break;
+
+                eventsToSend = new List<Dictionary<string, object>>(_eventQueue);
+                _eventQueue.Clear();
+            }
+
+            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Sending batch of {eventsToSend.Count} events");
+
+            var task = ProcessBatchedEvents(eventsToSend, false);
+            yield return new WaitUntil(() => task.IsCompleted);
+        }
+
+        public static async Task<string> ProcessBatchedEvents(List<Dictionary<string, object>> events, bool preventCaching)
+        {
+            if (events == null || events.Count == 0)
+                return null;
+
             // Loading config file
             StrixSDKConfig config = StrixSDKConfig.Instance;
 
@@ -82,10 +134,12 @@ namespace StrixSDK
                 {"engineVersion", Application.unityVersion},
                 {"environment", config.environment},
                 {"build", build},
-                {"payload", JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(payload)}
+                {"time", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")},
+                {"payload", events}
             };
 
-            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Sending analytics event: {payload}");
+            string payload = JsonConvert.SerializeObject(events);
+            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Sending analytics batch: {payload}");
 
             var response = await Client.Req(API.SendEvent, eventBody);
             if (response == "err")
@@ -94,20 +148,48 @@ namespace StrixSDK
                 {
                     AnalyticsCache.CacheFailedEvents(payload);
                     await NetworkListener.CheckNetworkAvailabilityAsync(API.HealthCheck);
-                    Debug.LogError("Error while sending Strix analytics event: no internet connection found. Events will be saved and delivered later.");
+                    Debug.LogError("Error while sending Strix analytics batch: no internet connection found. Events will be saved and delivered later.");
                 }
                 else
                 {
                     await NetworkListener.CheckNetworkAvailabilityAsync(API.HealthCheck);
-                    Debug.LogError("Error while sending Strix analytics event: no internet connection found. Events will NOT be saved as preventCaching is 'true', but will be delivered later .");
+                    Debug.LogError("Error while sending Strix analytics batch: no internet connection found. Events will NOT be saved as preventCaching is 'true', but will be delivered later .");
                 }
                 return null;
             }
             else
             {
-                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Analytics event was successfully sent.");
+                StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Analytics batch was successfully sent.");
                 return response;
             }
+        }
+
+        public static async Task<string> ProcessNewEvent(string payload, bool preventCaching)
+        //
+        // After we formed the needed payload, put it in queue for batching or send immediately if needed
+        //
+        {
+            var events = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(payload);
+
+            if (events != null && events.Count > 0)
+            {
+                lock (_queueLock)
+                {
+                    _eventQueue.AddRange(events);
+                    StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Added {events.Count} events to batch queue. Queue size: {_eventQueue.Count}");
+                }
+            }
+
+            return "queued";
+        }
+
+        public static async Task<string> SendImmediateEvent(string payload, bool preventCaching)
+        //
+        // For critical events that need to be sent immediately (like endSession)
+        //
+        {
+            var events = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(payload);
+            return await ProcessBatchedEvents(events, preventCaching);
         }
 
         #region Sending events
@@ -166,10 +248,10 @@ namespace StrixSDK
                         { "customData", customData }
                     };
 
-                // Add body and try to send
+                // Send immediately for session end events
                 var payloadList = new List<Dictionary<string, object>> { payloadObject };
                 string payloadJson = JsonConvert.SerializeObject(payloadList);
-                return await ProcessNewEvent(payloadJson, false);
+                return await SendImmediateEvent(payloadJson, false);
             }
             else
             {
@@ -403,10 +485,18 @@ namespace StrixSDK
                     { "customData", customData }
                 };
 
-            // Add body and try to send
+            // Send immediately for fatal errors
             var payloadList = new List<Dictionary<string, object>> { payloadObject };
             string payloadJson = JsonConvert.SerializeObject(payloadList);
-            return await ProcessNewEvent(payloadJson, false);
+
+            if (severity == SeverityTypes.fatal || severity == SeverityTypes.error)
+            {
+                return await SendImmediateEvent(payloadJson, false);
+            }
+            else
+            {
+                return await ProcessNewEvent(payloadJson, false);
+            }
         }
 
         // custom design events
@@ -466,6 +556,7 @@ namespace StrixSDK
 
         private void OnApplicationPause()
         {
+            FlushEvents();
             if (!endSessionWasSent)
             {
                 _ = SendEndSessionEvent(null);
@@ -475,6 +566,7 @@ namespace StrixSDK
 
         private void OnApplicationQuit()
         {
+            FlushEvents();
             if (!endSessionWasSent)
             {
                 _ = SendEndSessionEvent(null);
@@ -482,12 +574,46 @@ namespace StrixSDK
             }
         }
 
+        private void OnDestroy()
+        {
+            _isBatchingEnabled = false;
+            if (_batchSendCoroutine != null)
+            {
+                StopCoroutine(_batchSendCoroutine);
+                _batchSendCoroutine = null;
+            }
+        }
+
+        /// <summary>
+        /// Immediately sends any queued events
+        /// </summary>
+        public static async void FlushEvents()
+        {
+            List<Dictionary<string, object>> eventsToSend;
+
+            lock (_queueLock)
+            {
+                if (_eventQueue.Count == 0)
+                    return;
+
+                eventsToSend = new List<Dictionary<string, object>>(_eventQueue);
+                _eventQueue.Clear();
+            }
+
+            StrixSDK.Runtime.Utils.Utils.StrixDebugLogMessage($"Flushing {eventsToSend.Count} events immediately");
+            await ProcessBatchedEvents(eventsToSend, false);
+        }
+
         #endregion Session end/crash handler
 
         public static async Task<bool> TryToResendFailedEvents()
         {
             string cachedEvents = AnalyticsCache.LoadCachedEvents();
-            var response = await ProcessNewEvent(cachedEvents, true);
+            if (string.IsNullOrEmpty(cachedEvents))
+                return true;
+
+            var events = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(cachedEvents);
+            var response = await ProcessBatchedEvents(events, true);
             if (response != null)
             {
                 AnalyticsCache.DeleteCachedEvents();
